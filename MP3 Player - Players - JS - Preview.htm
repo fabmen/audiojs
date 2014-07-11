@@ -1,0 +1,889 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta http-equiv="Content-Style-Type" content="text/css">
+        <meta name="keywords" content="mp3, player, flash, audio, generator">
+        <meta name="author" content="neolao">
+        <meta name="description" content="Lecteur de fichiers audios au format MP3, destiné à la diffusion par internet." lang="fr">
+        <meta name="description" content="Audio player for MP3 file, intended for the diffusion on websites." lang="en">
+        
+        <style media="screen" type="text/css" style="display:none">/******************************************************************************/
+/* GENERAL                                                                    */
+/******************************************************************************/
+* {
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+	font-size: medium;
+}
+html, body {
+	margin: 0;
+	background-color: #7f7f8e;
+	color: #333;
+}
+body {
+	background-image: url(http://flash-mp3-player.net/style/images/background.jpg);
+	background-repeat: repeat-y;
+	background-position: top center;
+}
+iframe {
+	border: solid 2px #ccc;
+	width: 100%;
+}
+img {
+	border: none;
+}
+
+/******************************************************************************/
+/* HEADER                                                                     */
+/******************************************************************************/
+#header {
+	width: 800px;
+	margin: 0 auto;
+	border-left: solid 1px #333;
+	border-right: solid 1px #333;
+	padding: 0;
+	/*background-image: url(http://flash-mp3-player.net/style/images/header.png);
+	background-position: bottom;
+	background-repeat: no-repeat;*/
+	background-image: url(http://flash-mp3-player.net/style/images/title_background.png);
+	background-position: bottom;
+	background-repeat: repeat-x;
+}
+	#header #access {
+		float: right;
+		padding: 0 0 .4em .5em;
+	}
+		#header #access ul {
+			margin: 0 .5em 0 0;
+			padding: 0;
+		}
+			#header #access ul li {
+				display: inline;
+				font-size: .8em;
+				border-left: solid 1px #999;
+				padding-left: .5em;
+			}
+				#header #access ul li a {
+					font-size: 1em;
+					color: #333;
+					background-color: inherit;
+					text-decoration: none;
+				}
+				#header #access ul li a:hover {
+					color: #000;
+					background-color: inherit;
+				}
+	#header h1 {
+		margin: 0;
+		padding: 0;
+		font-size: .1em;
+		color: #11757e;
+		background-color: inherit;
+		font-family: Georgia, "Times New Roman", serif;
+	}
+
+/******************************************************************************/
+/* NAVIGATION                                                                 */
+/******************************************************************************/
+#nav {
+	width: 800px;
+	margin: 0 auto;
+	background-color: #d1f4c7;
+	color: #000;
+	border-left: solid 1px #333;
+	border-right: solid 1px #333;
+	border-bottom: solid 1px #333;
+}
+	#nav ul {
+		margin: 0;
+		padding: 0;
+		margin: 0 0 5px 1em;
+	}
+		#nav ul li {
+			display: inline;
+			background-color: #fff;
+			color: #333;
+		}
+		#nav ul li:hover {
+			background-color: #f3ce67;
+			color: #333;
+		}
+		#nav ul li.selected {
+			background-color: #189ca8;
+			color: #fff;
+		}
+			#nav ul li a {
+				border: solid 1px #333;
+				padding: 5px .7em 5px .7em;
+				text-decoration: none;
+				background-color: inherit;
+				color: #333;
+			}
+			#nav ul li.selected a {
+				background-color: inherit;
+				color: #fff;
+				border-bottom: solid 1px #189ca8;
+			}
+			/*#nav ul li.home a {
+				background-image: url(http://flash-mp3-player.net/style/images/house.png);
+				background-repeat: no-repeat;
+				background-position: center left;
+				padding-left: 20px;
+			}
+			#nav ul li.players a {
+				background-image: url(http://flash-mp3-player.net/style/images/picture.png);
+				background-repeat: no-repeat;
+				background-position: center left;
+				padding-left: 20px;
+			}
+			#nav ul li.help a {
+				background-image: url(http://flash-mp3-player.net/style/images/help.png);
+				background-repeat: no-repeat;
+				background-position: center left;
+				padding-left: 20px;
+			}*/
+#subnav {
+	width: 800px;
+	margin: 0 auto;
+	padding: 0;
+	border-left: solid 1px #333;
+	border-right: solid 1px #333;
+	border-bottom: solid 1px #333;
+	background-color: #189ca8;
+	color: #fff;
+	height: 1.7em;
+	font-size: .9em;
+	background-image: url(http://flash-mp3-player.net/style/images/subnav.png);
+	background-repeat: repeat-x;
+	background-position: top;
+}
+	#subnav p {
+		float: left;
+		margin: 0 .5em 0 1em;
+		line-height: 1.8em;
+		font-size: 1em;
+	}
+	#subnav ul {
+		margin: 0 .5em;
+		padding: 0;
+		line-height: 1.8em;
+		font-size: 1em;
+	}
+		#subnav ul li {
+			display: inline;
+			margin: 0 .2em;
+			font-size: 1em;
+		}
+			#subnav ul li a {
+				font-size: 1em;
+				color: #fff;
+				background-color: inherit;
+				text-decoration: none;
+				padding: 0 .2em;
+			}
+			#subnav ul li a:hover {
+				color: #f3ce67;
+				background-color: inherit;
+			}
+			#subnav ul li a.selected {
+				border-bottom: solid .3em #fff;
+			}
+
+/******************************************************************************/
+/* SIDEBAR                                                                    */
+/******************************************************************************/
+#sidebar {
+	float: right;
+	border-left: solid 1px #333;
+	border-bottom: solid 1px #333;
+	width: 150px;
+	background-color: #11737c;
+	color: #333;
+	padding: 10px;
+	margin-left: .5em;
+	margin-top: -11px;
+	margin-right: -10px;
+	margin-bottom: 10px;
+}
+	#sidebar ul {
+		margin: 0 !important;
+		padding: 0 !important;
+		list-style: none !important;
+	}
+		#sidebar ul li {
+			
+		}
+			#sidebar ul li a {
+				font-size: .9em;
+				text-decoration: none;
+				color: #fff;
+				background-color: inherit;
+				display: block;
+				padding: 4px !important;
+				background-position: 4px center !important;
+				background-image: none !important;
+			}
+			#sidebar ul li a:hover {
+				color: #f3ce67;
+				background-color: inherit;
+			}
+			#sidebar ul li a.selected {
+				color: #117079;
+				background-color: #ffffee;
+			}
+
+/******************************************************************************/
+/* BODY                                                                       */
+/******************************************************************************/
+#body {
+	width: 780px;
+	margin: 0 auto;
+	padding: 10px;
+	background-color: #fff;
+	color: #111;
+	border-left: solid 1px #333;
+	border-right: solid 1px #333;
+}
+	#body a {
+		color: #b26e07;
+		background-color: inherit;
+	}
+	#body a:hover {
+		color: #e29e37;
+		background-color: inherit;
+	}
+	#body a[href] {
+		background-image: url(http://flash-mp3-player.net/style/images/link_internal.gif);
+		background-repeat: no-repeat;
+		background-attachment: scroll;
+		background-position: left;
+		padding-left: 14px;
+	}
+	#body a[href]:visited {
+		background-image: url(http://flash-mp3-player.net/style/images/link_visited.gif);
+		background-repeat: no-repeat;
+		background-attachment: scroll;
+		background-position: left;
+		padding-left: 14px;
+	}
+	#body a[href^="http:"] {
+		background-image: url(http://flash-mp3-player.net/style/images/link_external.gif);
+		background-repeat: no-repeat;
+		background-attachment: scroll;
+		background-position: left;
+		padding-left: 14px;
+	}
+	#body a[hreflang]:after {
+		content: "\0000a0[" attr(hreflang) "]";
+	}
+	#body a.anchor {
+		background-image: none;
+		padding-left: 0;
+	}
+	#body a.anchor:visited {
+		background-image: none;
+		padding-left: 0;
+	}
+	#body h2 {
+		margin: 0;
+		font-size: 1.5em;
+		color: #e29e37;
+		background-color: #fff;
+		font-family: Georgia, "Times New Roman", serif;
+		clear: left;
+		border-bottom: solid 1px #e29e37;
+	}
+	#body h3 {
+		margin: 1.5em 0 0 .7em;
+		font-size: 1.3em;
+		color: #878bb4;
+		background-color: #fff;
+		font-family: Georgia, "Times New Roman", serif;
+		clear: left;
+		border-bottom: solid 1px #878bb4;
+	}
+	#body .level3 {
+		margin-left: 1em;
+	}
+	#body h4 {
+		margin: 1em 0 0 2em;
+		font-size: 1em;
+		color: #575b84;
+		background-color: #fff;
+		font-family: Georgia, "Times New Roman", serif;
+		border-bottom: solid 1px #575b84;
+		clear: left;
+	}
+	#body .level4 {
+		margin-left: 2em;
+		list-style-position: inside;
+	}
+	#body kbd {
+		background-color: #ffffc4;
+		color: #000;
+		border-color: #F8BB80 rgb(235, 146, 21) rgb(235, 146, 21) rgb(248, 187, 128);
+		border-style: solid;
+		border-width: 1px;
+		padding: 0 5px;
+		font-size: .9em;
+		font-weight: bold;
+		font-family: "Courier New",Courier,monospace;
+	}
+	#body em {
+		font-size: 1em;
+	}
+	#body strong {
+		font-size: 1em;
+	}
+	#body code {
+		font-size: 1em;
+		font-family: "Courier New",Courier,monospace;
+		background-color: #ffffc4;
+		color: #000;
+		border: solid 1px #ccc;
+		white-space: nowrap;
+		padding: 1px 4px;
+	}
+	#body p {
+		margin: .2em 0 .5em 0;
+		clear: left;
+		font-size: .9em;
+	}
+		#body p * {
+			font-size: 1em;
+		}
+	#body input {
+		font-size: .9em;
+	}
+	#body ul {
+		list-style-image: url(http://flash-mp3-player.net/style/images/bullet_orange.png);
+		list-style-position: outside;
+		margin: .5em 0 .5em 14px;
+		padding: 0;
+	}
+		#body ul li {
+			font-size: .9em;
+		}
+		#body ul ul {
+			margin-left: 2em;
+		}
+	#body ul.types {
+		list-style: none;
+	}
+		#body ul.types li {
+			float: left;
+			margin: 0 20px 10px 20px;
+		}
+			#body ul.types li a {
+				display: block;
+				width: 90px;
+				height: 50px;
+				line-height: 50px;
+				text-align: center;
+				white-space: nowrap;
+				text-decoration: none;
+				color: #2d2b40;
+				font-weight: bold;
+				background-color: #fa9231;
+				background-image: url(http://flash-mp3-player.net/style/images/player_link.png) !important;
+				background-repeat: no-repeat;
+				background-position: top left !important;
+				font-size: 14px;
+				padding: 0 !important;
+			}
+			#body ul.types li a:hover {
+				color: #2d2b40;
+				background-color: #fddd66;
+				background-image: url(http://flash-mp3-player.net/style/images/player_link_over.png) !important;
+				background-repeat: no-repeat;
+				background-position: top left;
+			}
+	
+	#body table {
+		border: solid 1px #999;
+		border-collapse: collapse;
+		margin-top: .5em;
+		margin-bottom: .5em;
+	}
+		#body table tfoot {
+			display: none;
+		}
+		#body table th {
+			border: solid 1px #999;
+			padding: 5px;
+			text-align: left;
+			background-color: #e6e6ff;
+			color: #333;
+			font-size: .9em;
+		}
+		#body table th.name {
+			text-align: right;
+		}
+		#body table td {
+			border: solid 1px #999;
+			padding: 5px;
+			background-color: #fff;
+			color: #333;
+			font-size: .9em;
+			vertical-align: top;
+		}
+			#body table td * {
+				font-size: 1em;
+			}
+		#body table td.name {
+			text-align: right;
+			font-weight: bold;
+			font-family: "Courier New",Courier,monospace;
+		}
+		#body table td.key {
+			text-align: center;
+			font-weight: bold;
+		}
+		
+	#body pre.code {
+		font-size: .9em;
+		font-family: "Courier New",Courier,monospace;
+		background-color: #f5f5f5;
+		color: #000;
+		border: solid 2px #ccc;
+		padding: 5px;
+		overflow: auto;
+	}
+	
+	#body .sitemap {
+		list-style: none;
+	}
+#bodyfooter {
+	clear: both;
+	margin-bottom: 2em;
+}
+
+/******************************************************************************/
+/* PLAYER                                                                     */
+/******************************************************************************/
+.player {
+	float: left;
+	width: 200px;
+	margin: 1em;
+}
+.playerpreview {
+	margin-top: 12px;
+	margin-bottom: 12px;
+}
+
+#playercontroller {
+	background-color: #e9f6ff;
+	color: #000;
+	height: 20px;
+	width: 200px;
+	border: solid 1px #ccc;
+	margin: 0 0 1em 0;
+}
+	#playercontroller .button {
+		width: 20px;
+		height: 20px;
+		background-repeat: no-repeat;
+		background-position: 2px 2px;
+		float: left;
+	}
+		#playercontroller .button a {
+			display: block;
+			height: 20px;
+			text-indent: -100em;
+			overflow: hidden;
+			background-image: none;
+		}
+	#playercontroller .timeline {
+		position: relative;
+	}
+		#playercontroller .timeline a {
+			position: absolute;
+			left: 40px;
+			display: block;
+			height: 20px;
+			width: 40px;
+			text-indent: -100em;
+			overflow: hidden;
+			background-image: url(http://flash-mp3-player.net/style/images/control_slider.png);
+		}
+		#playercontroller .timeline a:visited {
+			background-image: url(http://flash-mp3-player.net/style/images/control_slider.png);
+		}
+		#playercontroller .timeline a:hover {
+			background-image: url(http://flash-mp3-player.net/style/images/control_slider_blue.png);
+		}
+	#playercontroller .play {
+		background-image: url(http://flash-mp3-player.net/style/images/control_play.png);
+	}
+	#playercontroller .play:hover {
+		background-image: url(http://flash-mp3-player.net/style/images/control_play_blue.png);
+	}
+	#playercontroller .pause {
+		background-image: url(http://flash-mp3-player.net/style/images/control_pause.png);
+		display: none;
+	}
+	#playercontroller .pause:hover {
+		background-image: url(http://flash-mp3-player.net/style/images/control_pause_blue.png);
+	}
+	#playercontroller .stop {
+		background-image: url(http://flash-mp3-player.net/style/images/control_stop.png);
+	}
+	#playercontroller .stop:hover {
+		background-image: url(http://flash-mp3-player.net/style/images/control_stop_blue.png);
+	}
+
+/******************************************************************************/
+/* GENERATOR                                                                  */
+/******************************************************************************/
+#player {
+	margin: 10px 0;
+}
+#generator {
+	border: solid 1px #878bb4;
+	clear: both;
+}
+	#generator h3 {
+		margin: 0;
+		background-color: #878bb4;
+		color: #fff;
+		font-size: 1em;
+		padding: 4px;
+	}
+	#generator select {
+		font-size: .9em;
+	}
+		#generator select option {
+			font-size: 1em;
+		}
+	#generator table {
+		width: 100%;
+		border: none;
+		margin: 0;
+	}
+		#generator table thead {
+			display: none;
+		}
+		#generator table tr {
+			background-color: #fff;
+			color: #333;
+		}
+		#generator table tr:hover {
+			background-color: #d4edff;
+			color: #333;
+		}
+		#generator table td {
+			border: none;
+			background-color: inherit;
+			color: inherit;
+		}
+		#generator table td.name {
+			white-space: nowrap;
+			vertical-align: middle;
+		}
+		#generator table td.actions {
+			white-space: nowrap;
+			vertical-align: middle;
+			text-align: right;
+		}
+			#generator table td.actions a {
+				background-image: none;
+				padding: 0;
+			}
+		#generator table td.value {
+			width: 100%;
+		}
+			#generator table td.value input.text {
+				width: 100%;
+			}
+			#generator table td.value input.url {
+				width: 100%;
+			}
+			#generator table td.value input.int {
+				width: 5em;
+			}
+			#generator table td.value input.check {
+				
+			}
+			#generator table td.value input.color {
+				width: 8em;
+			}
+	#generator table.visible {
+		display: table;
+	}
+	#generator table.hidden {
+		display: none;
+	}
+
+.generator_output {
+	border: solid 1px #878bb4;
+	margin-top: 10px;
+}
+	.generator_output h3 {
+		margin: 0 !important;
+		background-color: #878bb4 !important;
+		color: #fff !important;
+		font-size: 1em !important;
+		padding: 4px !important;
+	}
+	.generator_output textarea {
+		padding: 5px;
+		font-size: .9em;
+		font-family: "Courier New",Courier,monospace;
+		height: 6em;
+		width: 768px;
+		border: none;
+	}
+.tooltip {
+	background-color: #ffd;
+	color: #3a638f;
+	border: solid 2px #6a93bf;
+	padding: 4px;
+	display: block;
+	position: absolute;
+	max-width: 400px;
+}
+	.tooltip code {
+		font-weight: bold;
+	}
+.tooltip_arrow {
+	position: absolute;
+	right: 5px;
+	bottom: -11px;
+}
+.colorpicker {
+	background-color: #ffd;
+	color: #3a638f;
+	border: solid 2px #6a93bf;
+	padding: 4px;
+	display: block;
+	position: absolute;
+}
+.colorpicker_arrow {
+	position: absolute;
+	right: 5px;
+	bottom: -11px;
+}
+/******************************************************************************/
+/* PUB                                                                        */
+/******************************************************************************/
+#body .pub {
+	border: solid 1px #807f8d;
+	padding-bottom: 2px;
+}
+	#body .pub h2 {
+		font-size: .9em;
+		background-color: #807f8d;
+		color: #fff;
+		border: none;
+		padding: 2px;
+	}
+	#body .pub iframe {
+		width: 100%;
+		margin: 0 auto;
+		border: none;
+		border-bottom: solid 1px #807f8d;
+		padding: 2px 0;
+	}
+	#body .pub a {
+		color: #666699;
+		background-color: inherit;
+		background-image: none;
+		padding: 0;
+	}
+	#body .pub ul {
+		list-style: none;
+	}
+	#body .pub li {
+		display: inline;
+	}
+/******************************************************************************/
+/* FOOTER                                                                     */
+/******************************************************************************/
+#footer {
+	width: 800px;
+	margin: 0 auto;
+	border-top: solid 1px #333;
+	border-left: solid 1px #333;
+	border-right: solid 1px #333;
+	border-bottom: solid 1px #333;
+	background-color: #189ca8;
+	color: #eee;
+	font-size: .8em;
+	clear: both;
+	background-image: url(http://flash-mp3-player.net/style/images/subnav.png);
+	background-repeat: repeat-x;
+	background-position: top;
+}
+	#footer form {
+		font-size: 1em;
+		display: inline;
+	}
+	#footer .neolao {
+		background-image: url(http://flash-mp3-player.net/medias/logo.jpg);
+		background-repeat: no-repeat;
+		background-position: left;
+		padding-left: 20px;
+		padding-bottom: 2px;
+	}
+	#footer p.infos {
+		float: right;
+	}
+		#footer p.infos img {
+			position: absolute;
+		}
+		#footer p.infos input {
+			display: inline;
+			font-size: 1em;
+			background-color: transparent;
+			color: #eee;
+			border: none;
+			padding: 0;
+			cursor: pointer;
+		}
+		#footer p.infos input:hover {
+			background-color: transparent;
+			color: #fff;
+		}
+	#footer p {
+		margin: .3em .5em .5em .5em;
+		font-size: 1em;
+	}
+		#footer p a {
+			font-size: 1em;
+			color: #eee;
+			background-color: inherit;
+			text-decoration: none;
+		}
+		#footer p a:hover {
+			color: #fff;
+			background-color: inherit;
+		}
+		
+
+</style>
+
+        <title>
+        MP3 Player - Players - JS - Preview        </title>
+    </head>
+    <body>
+        <div id="body">
+            <div id="sidebar">
+                <ul>
+                </ul>
+            </div>
+            <h2>Preview</h2>
+            <script type="text/javascript">
+            //<![CDATA[
+                var myListener = new Object();
+                
+                /**
+                 * Initialisation
+                 */
+                myListener.onInit = function()
+                {
+                    this.position = 0;
+                };
+                /**
+                 * Update
+                 */
+                myListener.onUpdate = function()
+                {
+                    document.getElementById("info_playing").innerHTML = this.isPlaying;
+                    document.getElementById("info_url").innerHTML = this.url;
+                    document.getElementById("info_volume").innerHTML = this.volume;
+                    document.getElementById("info_position").innerHTML = this.position;
+                    document.getElementById("info_duration").innerHTML = this.duration;
+                    document.getElementById("info_bytes").innerHTML = this.bytesLoaded + "/" + this.bytesTotal + " (" + this.bytesPercent + "%)";
+                    
+                    var isPlaying = (this.isPlaying == "true");
+                    document.getElementById("playerplay").style.display = (isPlaying)?"none":"block";
+                    document.getElementById("playerpause").style.display = (isPlaying)?"block":"none";
+                    
+                    var timelineWidth = 160;
+                    var sliderWidth = 40;
+                    var sliderPositionMin = 40;
+                    var sliderPositionMax = sliderPositionMin + timelineWidth - sliderWidth;
+                    var sliderPosition = sliderPositionMin + Math.round((timelineWidth - sliderWidth) * this.position / this.duration);
+                    
+                    if (sliderPosition < sliderPositionMin) {
+                        sliderPosition = sliderPositionMin;
+                    }
+                    if (sliderPosition > sliderPositionMax) {
+                        sliderPosition = sliderPositionMax;
+                    }
+                    
+                    document.getElementById("playerslider").style.left = sliderPosition+"px";
+                };
+                
+                function getFlashObject()
+                {
+                    return document.getElementById("myFlash");
+                }
+                function play()
+                {
+                    if (myListener.position == 0) {
+                        getFlashObject().SetVariable("method:setUrl", "demos/audio/PalaceCat-Crookshanks.mp3");
+                    }
+                    getFlashObject().SetVariable("method:play", "");
+                    getFlashObject().SetVariable("enabled", "true");
+                }
+                function pause()
+                {
+                    getFlashObject().SetVariable("method:pause", "");
+                }
+                function stop()
+                {
+                    getFlashObject().SetVariable("method:stop", "");
+                }
+                function setPosition()
+                {
+                    var position = document.getElementById("inputPosition").value;
+                    getFlashObject().SetVariable("method:setPosition", position);
+                }
+                function setVolume()
+                {
+                    var volume = document.getElementById("inputVolume").value;
+                    getFlashObject().SetVariable("method:setVolume", volume);
+                }
+            //]]>
+            </script>
+            <!--[if IE]>
+            <script type="text/javascript" event="FSCommand(command,args)" for="myFlash">
+            eval(args);
+            </script>
+            <![endif]-->
+
+            <object class="playerpreview" id="myFlash" type="application/x-shockwave-flash" data="player_mp3_js.swf" height="1" width="1">
+                <param name="movie" value="player_mp3_js.swf">
+                <param name="AllowScriptAccess" value="always">
+                <param name="FlashVars" value="listener=myListener&interval=500">
+            </object>
+            <div id="playercontroller">
+                <div id="playerplay" class="button play"><a href="javascript:play()">PLAY</a></div>
+                <div id="playerpause" class="button pause"><a href="javascript:pause()">PAUSE</a></div>
+                <div id="playerstop" class="button stop"><a href="javascript:stop()">STOP</a></div>
+                <div class="timeline"><a id="playerslider" href="#slider">SLIDER</a></div>
+            </div>
+            <p>This player is developed whti the goal to be be 
+integrated with Javascript. The player has no graphical interface, but 
+it can be completely controlled by code.</p>            
+            <h2>Examples of possible actions</h2>
+            <form action="/players/js/" method="post">
+                <ul>
+                    <li>Change the position: <input id="inputPosition" value="10000" size="6" type="text"> <input value="Change" onclick="setPosition()" type="button"></li>
+                    <li>Change the volume: <input id="inputVolume" value="100" size="3" type="text"> <input value="Change" onclick="setVolume()" type="button"></li>
+                </ul>
+            </form>
+            <h2>Informations</h2>
+            <ul>
+                <li>url : <span id="info_url">undefined</span></li>
+                <li>chargement : <span id="info_bytes">undefined</span></li>
+                <li>isPlaying : <span id="info_playing">undefined</span></li>
+    
+                <li>position : <span id="info_position">undefined</span></li>
+                <li>duration : <span id="info_duration">undefined</span></li>
+                <li>volume : <span id="info_volume">undefined</span></li>
+            </ul>
+            <div id="bodyfooter"></div>
+    
+
+</body></html>

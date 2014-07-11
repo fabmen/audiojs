@@ -1,0 +1,324 @@
+/*
+AudioJS Default Styles (http://videojs.com)
+Version 2.0.2
+
+
+/* DEFAULT SKIN (override in another file)
+================================================================================
+Using all CSS to draw the controls. Images could be used if desired.
+Instead of editing this file, I recommend creating your own skin CSS file to be included after this file,
+so you can upgrade to newer versions easier. */
+.jedfoster-skin.audio-js {
+    background: none;}
+/* Controls Layout
+  Using absolute positioning to position controls */
+.jedfoster-skin .ajs-control-bar {
+  position: relative; margin: 0; opacity: 0.85; color: #fff;
+  
+  left: 0; /* 100% width of audio-js-box */
+ /* width: 100%;*/
+  bottom: 0px; /* Distance from the bottom of the box/audio. Keep 0. Use height to add more bottom margin. */
+  height: 35px; /* Including any margin you want above or below control items */
+  padding: 0; /* Controls are absolutely position, so no padding necessary */
+  -webkit-transition: opacity 0.5s linear;
+  -moz-transition: opacity 0.5s linear;
+  -o-transition: opacity 0.5s linear;
+  -ms-transition: opacity 0.5s linear;
+  transition: opacity 0.5s linear;
+}
+/* Custom Icon Font
+--------------------------------------------------------------------------------
+The control icons are from a custom font. Each icon corresponds to a character
+(e.g. "\e001"). Font icons allow for easy scaling and coloring of icons.
+*/
+@font-face {
+  font-family: 'audioJS';
+  src: url('../font/vjs.eot');
+  src: url('../font/vjs.eot?#iefix') format('embedded-opentype'), url('../font/vjs.woff') format('woff'), url('../font/vjs.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+/* Base UI Component Classes
+--------------------------------------------------------------------------------
+*/
+/* Slider - used for Volume bar and Seek bar */
+.jedfoster-skin .ajs-slider {
+  /* Replace browser focus hightlight with handle highlight */
+  outline: 0;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  /* background-color-with-alpha */
+  background-color: #333333;
+  background-color: rgba(51, 51, 51, 0.9);
+}
+.jedfoster-skin .ajs-slider:focus {
+  /* box-shadow */
+  -webkit-box-shadow: 0 0 2em #ffffff;
+  -moz-box-shadow: 0 0 2em #ffffff;
+  box-shadow: 0 0 2em #ffffff;
+}
+.jedfoster-skin .ajs-slider-handle {
+  position: absolute;
+  /* Needed for IE6 */
+  left: 0;
+  top: 0;
+}
+.jedfoster-skin .ajs-slider-handle:before {
+  content: "\e009";
+  font-family: audioJS;
+  font-size: 1em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0em 0em 1em #fff;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Rotate the square icon to make a diamond */
+  /* transform */
+  -webkit-transform: rotate(-45deg);
+  -moz-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  -o-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+
+.jedfoster-skin .ajs-control-bar .ajs-control{ /* Direct div children of control bar */
+  position: absolute; /* Use top, bottom, left, and right to specifically position the control. */
+  text-align: center; margin: 0; padding: 0;
+  height: 25px; /* Default height of individual controls */
+  top: 5px; /* Top margin to put space between audio and controls when controls are below */
+
+  /* CSS Background Gradients, Using to give the aqua-ish look. */
+  background-color: #0B151A;
+  background: #1F3744 -webkit-gradient(linear, left top, left bottom, from(#0B151A), to(#1F3744)) left 12px;
+  background: #1F3744 -moz-linear-gradient(top,  #0B151A,  #1F3744) left 12px;
+
+  /* CSS Curved Corners */
+  -webkit-border-radius: 5px; border-radius: 5px;
+
+  /* CSS Shadows */
+  -webkit-box-shadow: 1px 1px 2px #000; -moz-box-shadow: 1px 1px 2px #000; box-shadow: 1px 1px 2px #000;
+}
+
+/* Placement of Control Items
+   - Left side of pogress bar, use left & width
+   - Rigth side of progress bar, use right & width
+   - Expand with the audio (like progress bar) use left & right */
+.jedfoster-skin .ajs-control-bar .ajs-play-control       { left: 5px;   width: 25px;  }
+.jedfoster-skin .ajs-control-bar .ajs-progress-control   { left: 35px;  right: 155px; } /* Using left & right so it expands with the width of the audio */
+.jedfoster-skin .ajs-control-bar .ajs-time-controls       { width: 30px;  -webkit-border:0px;border-radius:0px; } /* Time control and progress bar are combined to look like one */
+.jedfoster-skin .ajs-control-bar .ajs-volume-control     { width: 55px; right: 5px;  }
+.jedfoster-skin .ajs-control-bar .ajs-mute-control     { width: 25px; right: 60px; -webkit-border:0px;border-radius:0px; }
+.jedfoster-skin .ajs-control-bar .ajs-current-time,.jedfoster-skin .ajs-control-bar .ajs-remaining-time{ right: 125px;}
+.jedfoster-skin .ajs-control-bar .ajs-time-divider{ width: 10px; -webkit-border:0px;border-radius:0px;right: 115px;}
+.jedfoster-skin .ajs-control-bar .ajs-duration{ right: 85px;}
+/* Removing curved corners on progress control and time control to join them. */
+.jedfoster-skin .ajs-control-bar .ajs-progress-control {
+  -webkit-border-top-right-radius: 0; border-top-right-radius: 0;
+  -webkit-border-bottom-right-radius: 0; border-bottom-right-radius: 0;
+}
+.jedfoster-skin .ajs-control-bar .ajs-volume-control {
+  -webkit-border-top-left-radius: 0; border-top-left-radius: 0;
+  -webkit-border-bottom-left-radius: 0; border-bottom-left-radius: 0;
+}
+/* Hide control text visually, but have it available for screenreaders */
+.jedfoster-skin .ajs-control-text {
+  /* hide-visually */
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+/* FontAwsome button icons */
+.jedfoster-skin .ajs-control:before {
+  font-family: audioJS;
+  font-size: 1.5em;
+  line-height: 25px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Play/Pause
+-------------------------------------------------------------------------------- */
+.jedfoster-skin .ajs-play-control { cursor: pointer !important; }
+/* Play Icon */
+.jedfoster-skin .ajs-play-control span { display: block; font-size: 0; line-height: 0; }
+.jedfoster-skin .ajs-paused .ajs-play-control span {
+  width: 0; height: 0; margin: 8px 0 0 8px;
+  
+}
+.jedfoster-skin .ajs-playing .ajs-play-control span {
+  width: 3px; height: 10px; margin: 8px auto 0;
+  
+}
+.jedfoster-skin .ajs-play-control:before {
+  content: "\e001";
+}
+.jedfoster-skin.ajs-playing .ajs-play-control:before {
+  content: "\e002";
+}
+/* Progress
+-------------------------------------------------------------------------------- */
+.jedfoster-skin .ajs-progress-holder { /* Box containing play and load progresses */
+  position: relative; padding: 0;  cursor: pointer !important;
+  height: 9px; border: 1px solid #777;
+  margin: 7px 1px 0 5px; /* Placement within the progress control item */
+  -webkit-border-radius: 5px; border-radius: 5px;
+}
+
+.jedfoster-skin .ajs-play-progress {
+position: absolute; display: block; width: 0; height: 9px; margin: 0; padding: 0;
+  -webkit-border-radius: 5px; border-radius: 5px;
+  /* CSS Gradient */
+  background: #fff;
+  background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#777));
+  background: -moz-linear-gradient(top,  #fff,  #777);
+  background: linear-gradient(top,  #fff,  #777);
+}
+.jedfoster-skin .ajs-load-progress {
+position: absolute; display: block; width: 0; height: 9px; margin: 0; padding: 0;
+  -webkit-border-radius: 5px; border-radius: 5px;
+  opacity: 0.8;
+  /* CSS Gradient */
+  background-color: #555;
+  background: -webkit-gradient(linear, left top, left bottom, from(#555), to(#aaa));
+  background: -moz-linear-gradient(top,  #555,  #aaa);
+  background: linear-gradient(top,  #555,  #aaa);
+}
+.jedfoster-skin .ajs-seek-handle {
+  display:none;
+}
+.jedfoster-skin .ajs-seek-handle:before {
+margin-left: -8px /* Minor adjustment */;
+}
+/* Time Display
+-------------------------------------------------------------------------------- */
+
+.jedfoster-skin .ajs-time-controls {
+    font-size: 10px;
+    line-height: 25px;
+    font-weight: normal;
+    font-family: Helvetica,Arial,sans-serif;
+}
+/* Remaining time is in the HTML, but not included in default design */
+.jedfoster-skin .ajs-remaining-time {
+  display: none;
+ 
+}
+.jedfoster-skin .ajs-time-divider {
+    text-align: center;
+    font-size: 10px;
+    line-height: 25px;
+    font-weight: normal;
+    font-family: Helvetica,Arial,sans-serif;
+    position: absolute;
+text-align: center;
+text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+margin: 0px;
+padding: 0px;
+height: 25px;
+top: 5px;
+background-color: #0B151A;
+  background: #1F3744 -webkit-gradient(linear, left top, left bottom, from(#0B151A), to(#1F3744)) left 12px;
+  background: #1F3744 -moz-linear-gradient(top,  #0B151A,  #1F3744) left 12px;
+background: linear-gradient(center top , #0B151A, #1F3744) repeat scroll left 12px #1F3744;
+border-radius: 5px;
+box-shadow: 1px 1px 2px #000;
+}
+/* Volume
+-------------------------------------------------------------------------------- */
+.jedfoster-skin .ajs-volume-control { cursor: pointer !important; }
+
+.jedfoster-skin .ajs-volume-control div span.ajs-volume-level-on { border-color: #fff; /* Volume on bar color */ }
+
+.jedfoster-skin .ajs-mute-control {
+  cursor: pointer;
+  float: right;
+}
+.jedfoster-skin .ajs-mute-control:before {
+  content: "\e006";
+}
+.jedfoster-skin .ajs-mute-control.ajs-vol-0:before {
+  content: "\e003";
+}
+.jedfoster-skin .ajs-mute-control.ajs-vol-1:before {
+  content: "\e004";
+}
+.jedfoster-skin .ajs-mute-control.ajs-vol-2:before {
+  content: "\e005";
+}
+.ajs-default-skin .ajs-volume-control {
+  /*width: 5em;
+  float: right;*/
+}
+.jedfoster-skin .ajs-volume-bar {
+  position: relative; padding: 0; cursor: pointer !important;
+  height: 9px; border: 1px solid #777;
+  margin: 7px 1px 0 5px; /* Placement within the progress control item */
+  opacity: 0.8;
+  
+  /* CSS Gradient */
+  background-color: #555;
+  background: -webkit-gradient(linear, left top, left bottom, from(#555), to(#aaa));
+  background: -moz-linear-gradient(top,  #555,  #aaa);
+  -webkit-border-radius: 5px; border-radius: 5px;
+}
+
+.jedfoster-skin .ajs-volume-level {
+position: absolute;
+display: block;
+height: 9px;
+width:100%;
+margin: 0px;
+padding: 0px;
+/* CSS Gradient */
+  background: #fff;
+  background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#777));
+  background: -moz-linear-gradient(top,  #fff,  #777);
+  -webkit-border-radius: 5px; border-radius: 5px;
+}
+.jedfoster-skin .ajs-volume-bar .ajs-volume-handle {
+display:none;
+  
+}
+.jedfoster-skin .ajs-volume-handle:before {
+  font-size: 0.9em;
+
+  width: 1em;
+  height: 1em;
+  margin-left: -8px /* Minor adjustment */;
+}
+}
+/* Download Links - Used for browsers that don't support any audio.
+---------------------------------------------------------*/
+.jedfoster-skin .ajs-no-audio { font-size: small; line-height: 1.5; }
+
+
+/* Spinner Styles
+---------------------------------------------------------*/
+/* CSS Spinners by Kilian Valkhof - http://kilianvalkhof.com/2010/css-xhtml/css3-loading-spinners-without-images/ */
+.jedfoster-skin .ajs-loading-spinner { display: none; position: absolute; top: 50%; left: 50%; width: 100px; height: 100px; z-index: 1; margin: -50px 0 0 -50px;
+  /* Scaling makes the circles look smoother. */
+  -webkit-transform:scale(0.5); -moz-transform:scale(0.5); transform: scale(0.5);
+}
+.jedfoster-skin .ajs-loading-spinner:before {
+  content: "\e01e";
+  font-family: audioJS;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+  text-shadow: 0em 0em 0.1em #000;
+}

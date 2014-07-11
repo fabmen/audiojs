@@ -1,0 +1,556 @@
+/*
+AudioJS Default Styles (http://videojs.com)
+Version 2.0.2
+
+
+/* DEFAULT SKIN (override in another file)
+================================================================================
+The main class name for all skin-specific styles. To make your own skin,
+replace all occurances of 'ajs-default-skin' with a new name. Then add your new
+skin name to your audio tag instead of the default skin.
+e.g. <audio class="audio-js my-skin-name">
+*/
+.ajs-default-skin {
+  color: #cccccc;
+}
+/* Custom Icon Font
+--------------------------------------------------------------------------------
+The control icons are from a custom font. Each icon corresponds to a character
+(e.g. "\e001"). Font icons allow for easy scaling and coloring of icons.
+*/
+@font-face {
+  font-family: 'audioJS';
+  src: url('../font/vjs.eot');
+  src: url('../font/vjs.eot?#iefix') format('embedded-opentype'), url('../font/vjs.woff') format('woff'), url('../font/vjs.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+/* Base UI Component Classes
+--------------------------------------------------------------------------------
+*/
+/* Slider - used for Volume bar and Seek bar */
+.ajs-default-skin .ajs-slider {
+  /* Replace browser focus hightlight with handle highlight */
+  outline: 0;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  /* background-color-with-alpha */
+  background-color: #333333;
+  background-color: rgba(51, 51, 51, 0.9);
+}
+.ajs-default-skin .ajs-slider:focus {
+  /* box-shadow */
+  -webkit-box-shadow: 0 0 2em #ffffff;
+  box-shadow: 0 0 2em #ffffff;
+}
+.ajs-default-skin .ajs-slider-handle {
+  position: absolute;
+  /* Needed for IE6 */
+  left: 0;
+  top: 0;
+}
+.ajs-default-skin .ajs-slider-handle:before {
+  content: "\e009";
+  font-family: audioJS;
+  font-size: 1em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0em 0em 1em #fff;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Rotate the square icon to make a diamond */
+  /* transform */
+  -webkit-transform: rotate(-45deg);
+  -moz-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  -o-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+/* Control Bar
+--------------------------------------------------------------------------------
+The default control bar that is a container for most of the controls.
+*/
+.ajs-default-skin .ajs-control-bar {
+  /* Start hidden */
+  
+  position: absolute;
+  /* Place control bar at the bottom of the player box/audio.
+     If you want more margin below the control bar, add more height. */
+  bottom: 0;
+  /* Use left/right to stretch to 100% width of player div */
+  left: 0;
+  right: 0;
+  /* Height includes any margin you want above or below control items */
+  height: 3.0em;
+  /* background-color-with-alpha */
+  background-color: #07141e;
+  background-color: rgba(7, 20, 30, 0.7);
+}
+
+
+.ajs-default-skin.ajs-controls-disabled .ajs-control-bar {
+  display: none;
+}
+.ajs-default-skin.ajs-using-native-controls .ajs-control-bar {
+  display: none;
+}
+/* The control bar shouldn't show after an error */
+.ajs-default-skin.ajs-error .ajs-control-bar {
+  display: none;
+}
+/* IE8 is flakey with fonts, and you have to change the actual content to force
+fonts to show/hide properly.
+  - "\9" IE8 hack didn't work for this
+  - Found in XP IE8 from http://modern.ie. Does not show up in "IE8 mode" in IE9
+*/
+@media \0screen {
+  .ajs-default-skin.ajs-user-inactive.ajs-playing .ajs-control-bar :before {
+    content: "";
+  }
+}
+/* General styles for individual controls. */
+.ajs-default-skin .ajs-control {
+  outline: none;
+  position: absolute;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  height: 3.0em;
+  width: 4em;
+}
+
+/* Replacement for focus outline */
+.ajs-default-skin .ajs-control:focus:before,
+.ajs-default-skin .ajs-control:hover:before {
+  text-shadow: 0em 0em 1em #ffffff;
+}
+.ajs-default-skin .ajs-control:focus {
+  /*  outline: 0; */
+  /* keyboard-only users cannot see the focus on several of the UI elements when
+  this is set to 0 */
+
+}
+/* Hide control text visually, but have it available for screenreaders */
+.ajs-default-skin .ajs-control-text {
+  /* hide-visually */
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+/* FontAwsome button icons */
+.ajs-default-skin .ajs-control:before {
+  font-family: audioJS;
+  font-size: 1.5em;
+  line-height: 2;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Play/Pause
+--------------------------------------------------------------------------------
+*/
+.ajs-default-skin .ajs-play-control {
+  width: 5em;
+  cursor: pointer;
+}
+.ajs-default-skin .ajs-play-control:before {
+  content: "\e001";
+}
+.ajs-default-skin.ajs-playing .ajs-play-control:before {
+  content: "\e002";
+}
+/* Volume/Mute
+-------------------------------------------------------------------------------- */
+.ajs-default-skin .ajs-mute-control {
+  cursor: pointer;
+  right:60px;
+}
+.ajs-default-skin .ajs-mute-control:before {
+  content: "\e006";
+}
+.ajs-default-skin .ajs-mute-control.ajs-vol-0:before {
+  content: "\e003";
+}
+.ajs-default-skin .ajs-mute-control.ajs-vol-1:before {
+  content: "\e004";
+}
+.ajs-default-skin .ajs-mute-control.ajs-vol-2:before {
+  content: "\e005";
+}
+.ajs-default-skin .ajs-volume-control {
+  width: 5em;
+  right:0px;
+  margin-right:10px;
+}
+.ajs-default-skin .ajs-volume-bar {
+  width: 5em;
+  height: 0.6em;
+  margin: 1em auto;
+}
+
+.ajs-default-skin .ajs-volume-level {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 9px;
+  /* assuming volume starts at 1.0 */
+
+  width: 100%;
+  background: #66a8cc url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAP0lEQVQIHWWMAQoAIAgDR/QJ/Ub//04+w7ZICBwcOg5FZi5iBB82AGzixEglJrd4TVK5XUJpskSTEvpdFzX9AB2pGziSQcvAAAAAAElFTkSuQmCC) -50% 0 repeat;
+}
+.ajs-default-skin .ajs-volume-bar .ajs-volume-handle {
+  width: 0.5em;
+  height: 0.5em;
+  /* Assumes volume starts at 1.0. If you change the size of the
+     handle relative to the volume bar, you'll need to update this value
+     too. */
+
+  left: 4.5em;
+}
+.ajs-default-skin .ajs-volume-handle:before {
+  font-size: 0.9em;
+  top: -0.1em;
+  left: -0.2em;
+  width: 1em;
+  height: 1em;
+}
+
+/* Progress
+--------------------------------------------------------------------------------
+*/
+.ajs-default .ajs-progress-holder {
+  position: relative; padding: 0;  
+  
+  background: none;
+  
+ 
+}
+.ajs-default-skin .ajs-progress-control {
+  padding: 0px; margin: 10px ; 
+  width: auto;
+  font-size: 0.3em;
+  height: 1em;
+  left: 125px; right: 105px; 
+  /* Shrink the bar slower than it grows. */
+  /* transition */
+  -webkit-transition: all 0.4s;
+  -moz-transition: all 0.4s;
+  -o-transition: all 0.4s;
+  transition: all 0.4s;
+}
+/* On hover, make the progress bar grow to something that's more clickable.
+    This simply changes the overall font for the progress bar, and this
+    updates both the em-based widths and heights, as wells as the icon font */
+.ajs-default-skin:hover .ajs-progress-control {
+  font-size: .9em;
+  /* Even though we're not changing the top/height, we need to include them in
+      the transition so they're handled correctly. */
+
+  /* transition */
+  -webkit-transition: all 0.2s;
+  -moz-transition: all 0.2s;
+  -o-transition: all 0.2s;
+  transition: all 0.2s;
+}
+
+/* Progress Bars */
+.ajs-default-skin .ajs-progress-holder .ajs-play-progress,
+.ajs-default-skin .ajs-progress-holder .ajs-load-progress {
+  position: absolute;
+ display: block;
+ width: 0;
+ height: 9px;
+ margin: 0;
+ padding: 0;
+   width: 0;
+  /* Needed for IE6 */
+ left: 0;
+  top: 0;
+
+}
+.ajs-default-skin .ajs-play-progress {
+ background: #66a8cc url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAP0lEQVQIHWWMAQoAIAgDR/QJ/Ub//04+w7ZICBwcOg5FZi5iBB82AGzixEglJrd4TVK5XUJpskSTEvpdFzX9AB2pGziSQcvAAAAAAElFTkSuQmCC) -50% 0 repeat;
+}
+.ajs-default-skin .ajs-load-progress {
+  background: #646464 /* IE8- Fallback */;
+  background: rgba(255, 255, 255, 0.4);
+}
+.ajs-default-skin .ajs-seek-handle {
+  width: 1.5em;
+  height: 100%;
+}
+.ajs-default-skin .ajs-seek-handle:before {
+  /* Minor adjustment */;
+}
+/* Live Mode
+--------------------------------------------------------------------------------
+*/
+.ajs-default-skin.ajs-live .ajs-time-controls,
+.ajs-default-skin.ajs-live .ajs-time-divider,
+.ajs-default-skin.ajs-live .ajs-progress-control {
+  display: none;
+}
+.ajs-default-skin.ajs-live .ajs-live-display {
+  display: block;
+}
+/* Live Display
+--------------------------------------------------------------------------------
+*/
+.ajs-default-skin .ajs-live-display {
+  display: none;
+  font-size: 1em;
+  line-height: 3em;
+}
+/* Time Display
+--------------------------------------------------------------------------------
+*/
+.ajs-default-skin .ajs-time-controls {
+  font-size: 10px; line-height: 1; font-weight: normal; font-family: Helvetica, Arial, sans-serif;
+}
+.ajs-default-skin .ajs-current-time {
+  left: 50px; 
+line-height: 30px;
+}
+.ajs-default-skin .ajs-duration {
+  left: 100px;
+  line-height: 30px;
+}
+/* Remaining time is in the HTML, but not included in default design */
+.ajs-default-skin .ajs-remaining-time {
+  display: none;
+  
+  line-height: 30px;
+}
+.ajs-default-skin .ajs-time-divider {
+  left: 90px; 
+  line-height: 3em;
+  text-align: center;
+    width:1em;
+    font-weight: normal;
+    font-family: Helvetica,Arial,sans-serif;
+    position: absolute;
+text-align: center;
+margin: 0px;
+padding: 0px;
+
+}
+/* Error Display
+--------------------------------------------------------------------------------
+*/
+.ajs-error-display {
+  display: none;
+}
+.ajs-error .ajs-error-display {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+.ajs-error .ajs-error-display:before {
+  content: 'X';
+  font-family: Arial;
+  font-size: 4em;
+  color: #666666;
+  /* In order to center the play icon vertically we need to set the line height
+     to the same as the button height */
+
+  line-height: 1;
+  text-shadow: 0.05em 0.05em 0.1em #000;
+  text-align: center /* Needed for IE8 */;
+  vertical-align: middle;
+  position: absolute;
+  top: 50%;
+  margin-top: -0.5em;
+  width: 100%;
+}
+.ajs-error-display div {
+  position: absolute;
+  font-size: 1.4em;
+  text-align: center;
+  bottom: 1em;
+  right: 1em;
+  left: 1em;
+}
+.ajs-error-display a,
+.ajs-error-display a:visited {
+  color: #F4A460;
+}
+/* Loading Spinner
+--------------------------------------------------------------------------------
+*/
+.ajs-default-skin .ajs-loading-spinner {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 4em;
+  line-height: 1;
+  width: 1em;
+  height: 1em;
+  margin-left: -0.5em;
+  margin-top: -0.5em;
+  opacity: 0.75;
+  /* animation */
+  -webkit-animation: spin 1.5s infinite linear;
+  -moz-animation: spin 1.5s infinite linear;
+  -o-animation: spin 1.5s infinite linear;
+  animation: spin 1.5s infinite linear;
+}
+/* Errors are unrecoverable without user interaction,
+   so hide the spinner in the case of an error */
+.audio-js.ajs-error .ajs-loading-spinner {
+  /* using !important flag because currently the loading spinner
+     uses hide()/show() instead of classes. The !important can be
+     removed when that's updated */
+
+  display: none !important;
+  /* ensure animation doesn't continue while hidden */
+
+  /* animation */
+  -webkit-animation: none;
+  -moz-animation: none;
+  -o-animation: none;
+  animation: none;
+}
+.ajs-default-skin .ajs-loading-spinner:before {
+  content: "\e01e";
+  font-family: audioJS;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+  text-shadow: 0em 0em 0.1em #000;
+}
+@-moz-keyframes spin {
+  0% {
+    -moz-transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(359deg);
+  }
+}
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+  }
+}
+@-o-keyframes spin {
+  0% {
+    -o-transform: rotate(0deg);
+  }
+  100% {
+    -o-transform: rotate(359deg);
+  }
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(359deg);
+  }
+}
+
+/*
+REQUIRED STYLES (be careful overriding)
+================================================================================
+When loading the player, the audio tag is replaced with a DIV,
+that will hold the audio tag or object tag for other playback methods.
+The div contains the audio playback element (Flash or HTML5) and controls,
+and sets the width and height of the audio.
+
+** If you want to add some kind of border/padding (e.g. a frame), or special
+positioning, use another containing element. Otherwise you risk messing up
+control positioning and full window mode. **
+*/
+.audio-js {
+  background-color: #000;
+  position: relative;
+  padding: 0;
+  /* Start with 10px for base font size so other dimensions can be em based and
+     easily calculable. */
+
+  font-size: 10px;
+  /* Allow poster to be vertially aligned. */
+
+  vertical-align: middle;
+  /*  display: table-cell; */
+  /*This works in Safari but not Firefox.*/
+
+  /* Provide some basic defaults for fonts */
+
+  font-weight: normal;
+  font-style: normal;
+  /* Avoiding helvetica: issue #376 */
+
+  font-family: Arial, sans-serif;
+  /* Turn off user selection (text highlighting) by default.
+     The majority of player components will not be text blocks.
+     Text areas will need to turn user selection back on. */
+
+  /* user-select */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+/* Playback technology elements expand to the width/height of the containing div
+    <audio> or <object> */
+.audio-js .ajs-tech {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide disabled or unsupported controls */
+.ajs-default-skin .ajs-hidden {
+  display: none;
+}
+.ajs-lock-showing {
+  display: block !important;
+  opacity: 1;
+  visibility: visible;
+}
+/*  In IE8 w/ no JavaScript (no HTML5 shim), the audio tag doesn't register.
+    The .audio-js classname on the audio tag also isn't considered.
+    This optional paragraph inside the audio tag can provide a message to users
+    about what's required to play audio. */
+.ajs-no-js {
+  padding: 20px;
+  color: #ccc;
+  background-color: #333;
+  font-size: 18px;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  width: 300px;
+  height: 150px;
+  margin: 0px auto;
+}
+.ajs-no-js a,
+.ajs-no-js a:visited {
+  color: #F4A460;
+}
+/* -----------------------------------------------------------------------------
+The original source of this file lives at
+https://github.com/audiojs/audio.js/blob/master/src/css/audio-js.less */

@@ -1,0 +1,299 @@
+/*
+AudioJS Default Styles (http://videojs.com)
+Version 2.0.2
+
+
+/* DEFAULT SKIN (override in another file)
+================================================================================
+Using all CSS to draw the controls. Images could be used if desired.
+Instead of editing this file, I recommend creating your own skin CSS file to be included after this file,
+so you can upgrade to newer versions easier. */
+.tube-skin.audio-js {
+    background: none;}
+/* Controls Layout
+  Using absolute positioning to position controls */
+.tube-skin .ajs-control-bar {
+  position: relative; margin: 0; opacity: 0.85; color: #000;
+  
+  left: 0; /* 100% width of audio-js-box */
+ /* width: 100%;*/
+  bottom: 0px; /* Distance from the bottom of the box/audio. Keep 0. Use height to add more bottom margin. */
+  height: 20px; /* Including any margin you want above or below control items */
+  padding: 0; /* Controls are absolutely position, so no padding necessary */
+  -webkit-transition: opacity 0.5s linear;
+  -moz-transition: opacity 0.5s linear;
+  -o-transition: opacity 0.5s linear;
+  -ms-transition: opacity 0.5s linear;
+  transition: opacity 0.5s linear;
+}
+/* Custom Icon Font
+--------------------------------------------------------------------------------
+The control icons are from a custom font. Each icon corresponds to a character
+(e.g. "\e001"). Font icons allow for easy scaling and coloring of icons.
+*/
+@font-face {
+  font-family: 'audioJS';
+  src: url('../font/vjs.eot');
+  src: url('../font/vjs.eot?#iefix') format('embedded-opentype'), url('../font/vjs.woff') format('woff'), url('../font/vjs.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+/* Base UI Component Classes
+--------------------------------------------------------------------------------
+*/
+/* Slider - used for Volume bar and Seek bar */
+.tube-skin .ajs-slider {
+  /* Replace browser focus hightlight with handle highlight */
+  outline: 0;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  /* background-color-with-alpha */
+  background-color: #333333;
+  background-color: rgba(51, 51, 51, 0.9);
+}
+.tube-skin .ajs-slider:focus {
+  /* box-shadow */
+  -webkit-box-shadow: 0 0 2em #ffffff;
+  -moz-box-shadow: 0 0 2em #ffffff;
+  box-shadow: 0 0 2em #ffffff;
+}
+.tube-skin .ajs-slider-handle {
+  position: absolute;
+  /* Needed for IE6 */
+  left: 0;
+  top: 0;
+}
+.tube-skin .ajs-slider-handle:before {
+  content: "\e009";
+  font-family: audioJS;
+  font-size: 1em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0em 0em 1em #fff;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Rotate the square icon to make a diamond */
+  /* transform */
+  -webkit-transform: rotate(-45deg);
+  -moz-transform: rotate(-45deg);
+  -ms-transform: rotate(-45deg);
+  -o-transform: rotate(-45deg);
+  transform: rotate(-45deg);
+}
+
+.tube-skin .ajs-control-bar .ajs-control {
+  position: absolute; /* Use top, bottom, left, and right to specifically position the control. */
+  opacity: 1; color: #000;
+  height: 24px;
+  bottom: 0;
+  
+}
+
+.tube-skin .ajs-control-bar {
+  height: 24px; margin: 0; 
+background-color: #ccc;
+  background: #fcfcfc -webkit-gradient(linear, left top, left bottom, from(#fcfcfc), to(#d0d0d0)) left top;
+  background: #fcfcfc -moz-linear-gradient(top,  #fcfcfc,  #d0d0d0) left top;
+ top: 0;
+border: 1px solid #b1b1b1; 
+  
+  -webkit-border-radius: 0; border-radius: 0;
+  -webkit-box-shadow: none; box-shadow: none;
+}
+
+/* Placement of Control Items */
+.tube-skin .ajs-control-bar .ajs-play-control       { width: 25px; left: 0; }
+.tube-skin .ajs-control-bar .ajs-progress-control   { left: 90px; right: 85px;border-left: none; }
+.tube-skin .ajs-control-bar .ajs-time-controls       { width: 30px;  border-right: none;}
+.tube-skin .ajs-control-bar .ajs-volume-control     { width: 60px; right: 0px; }
+.tube-skin .ajs-control-bar .ajs-mute-control     { width: 25px; right: 60px; }
+.tube-skin .ajs-control-bar .ajs-current-time,.basic-skin .ajs-control-bar .ajs-remaining-time{ left: 25px;}
+.tube-skin .ajs-control-bar .ajs-time-divider{ width: 10px;left: 50px;}
+.tube-skin .ajs-control-bar .ajs-duration{ left: 60px;}
+
+/* Hide control text visually, but have it available for screenreaders */
+.tube-skin .ajs-control-text {
+  /* hide-visually */
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+/* FontAwsome button icons */
+.tube-skin .ajs-control:before {
+  font-family: audioJS;
+  font-size: 1.5em;
+  line-height: 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+
+}
+
+/* Play/Pause
+-------------------------------------------------------------------------------- */
+.tube-skin .ajs-play-control { 
+border-right: 1px solid #b1b1b1;  }
+/* Play Icon */
+.tube-skin .ajs-paused  .ajs-play-control span { border-left-color: #333; border-top-width: 7px; border-left-width: 13px; border-bottom-width: 7px; margin: 5px 0 0 7px; }
+.tube-skin .ajs-paused  .ajs-play-control:hover span { border-left-color: #CF1A1A; }
+.tube-skin .ajs-playing .ajs-play-control:hover span { border-left-color: #CF1A1A; border-right-color: #CF1A1A; }
+
+.tube-skin .ajs-playing .ajs-play-control span { 
+height: 14px; margin: 5px auto 0; border-left: 4px solid #333; border-right: 4px solid #333;
+ }
+
+.tube-skin .ajs-play-control:before {
+  content: "\e001";
+}
+.tube-skin.ajs-playing .ajs-play-control:before {
+  content: "\e002";
+}
+
+
+/* Progress
+-------------------------------------------------------------------------------- */
+.tube-skin .ajs-progress-holder {
+  position: relative; padding: 0;  
+  height:24px;
+  background: none;
+  margin: 7px 5px 5px 5px;
+ 
+}
+.tube-skin .ajs-play-progress { 
+position: absolute; display: block; width: 0;  margin: 0; padding: 0; 
+height: 9px;
+background: #f33;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f33), to(#CF1A1A));
+ background: -moz-linear-gradient(top,  #f33,  #CF1A1A); -webkit-border-radius: 0; border-radius: 0;
+border: 1px solid #777;
+border-color: #CACACA #CACACA #EAEAEA;
+ }
+
+.tube-skin .ajs-load-progress { 
+position: absolute; display: block; width: 0;  margin: 0; padding: 0; 
+height: 9px;
+background: #C89191;
+border: 1px solid #777;
+border-color: #CACACA #CACACA #EAEAEA;
+}
+
+.tube-skin .ajs-seek-handle {
+  display:none;
+}
+/* Time Display
+-------------------------------------------------------------------------------- */
+
+.tube-skin .ajs-time-controls {
+    font-size: 10px;
+    line-height: 24px;
+    font-weight: normal;
+    font-family: Helvetica,Arial,sans-serif;
+    text-align: center
+}
+/* Remaining time is in the HTML, but not included in default design */
+.tube-skin .ajs-remaining-time {
+  display: none;
+ 
+}
+.tube-skin .ajs-time-divider {
+    text-align: center;
+    font-size: 10px;
+    line-height: 24px;
+    font-weight: normal;
+    font-family: Helvetica,Arial,sans-serif;
+    position: absolute;
+text-align: center;
+margin: 0px;
+padding: 0px;
+height: 24px;
+
+}
+/* Volume
+-------------------------------------------------------------------------------- */
+.tube-skin .ajs-volume-control  {
+}
+.tube-skin .ajs-mute-control {
+  cursor: pointer;
+  float: right;
+  border-left: 1px solid #B1B1B1
+}
+.tube-skin .ajs-mute-control:before {
+  content: "\e006";
+}
+.tube-skin .ajs-mute-control.ajs-vol-0:before {
+  content: "\e003";
+}
+.tube-skin .ajs-mute-control.ajs-vol-1:before {
+  content: "\e004";
+}
+.tube-skin .ajs-mute-control.ajs-vol-2:before {
+  content: "\e005";
+}
+.tube-skin .ajs-volume-control {
+  /*width: 5em;
+  float: right;*/
+}
+.tube-skin .ajs-volume-bar {
+  position: relative; padding: 0; cursor: pointer !important;
+  height: 9px; 
+  margin: 7px 2px;
+background: #C89191;
+border: 1px solid #777;
+border-color: #CACACA #CACACA #EAEAEA;
+}
+
+.tube-skin .ajs-volume-level {
+position: absolute;
+display: block;
+height: 9px;
+width:100%;
+margin: 0px;
+padding: 0px;
+background: #f33;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f33), to(#CF1A1A));
+ background: -moz-linear-gradient(top,  #f33,  #CF1A1A); -webkit-border-radius: 0; border-radius: 0;
+
+}
+.tube-skin .ajs-volume-bar .ajs-volume-handle {
+display:none;
+  
+}
+.tube-skin .ajs-volume-handle:before {
+  font-size: 0.9em;
+
+  width: 1em;
+  height: 1em;
+  margin-left: -8px /* Minor adjustment */;
+}
+}
+/* Download Links - Used for browsers that don't support any audio.
+---------------------------------------------------------*/
+.tube-skin .ajs-no-audio { font-size: small; line-height: 1.5; }
+
+
+/* Spinner Styles
+---------------------------------------------------------*/
+/* CSS Spinners by Kilian Valkhof - http://kilianvalkhof.com/2010/css-xhtml/css3-loading-spinners-without-images/ */
+.tube-skin .ajs-loading-spinner { display: none; position: absolute; top: 50%; left: 50%; width: 100px; height: 100px; z-index: 1; margin: -50px 0 0 -50px;
+ }
+.basic-skin-skin .ajs-loading-spinner:before {
+  content: "\e01e";
+  font-family: audioJS;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1em;
+  height: 1em;
+  text-align: center;
+  text-shadow: 0em 0em 0.1em #000;
+}
