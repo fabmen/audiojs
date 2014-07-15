@@ -5349,7 +5349,7 @@ ajs.Flash = ajs.MediaTechController.extend({
 
           // SWF Callback Functions
           'listener': 'audiojs.Flash.listener',
-          'interval': '500',
+          'interval': '500'
           // Player Settings
           
         }, options['flashVars']),
@@ -5526,7 +5526,7 @@ ajs.Flash.prototype.buffered = function(){
 };
 
 // List of all HTML5 events (various uses).
-ajs.Flash.Events = 'suspend,abort,error,emptied,stalled,loadedmetadata,loadeddata,canplay,canplaythrough,playing,waiting,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
+ajs.Flash.Events = 'loadstart,canplay,playing,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
 
 // Make audio events trigger player events
 // May seem verbose here, but makes other APIs possible.
@@ -5552,29 +5552,6 @@ ajs.Flash.prototype.eventHandler = function(evt){
   }
 };
 
-// Make audio events trigger player events
-// May seem verbose here, but makes other APIs possible.
-// Triggers removed using this.off when disposed
-ajs.Flash.prototype.setupTriggers = function(){
-  for (var i = ajs.Flash.Events.length - 1; i >= 0; i--) {
-    ajs.on(this.el_, ajs.Flash.Events[i], ajs.bind(this, this.eventHandler));
-  }
-};
-
-ajs.Flash.prototype.eventHandler = function(evt){
-  // In the case of an error, set the error prop on the player
-  // and let the player handle triggering the event.
-  if (evt.type == 'error') {
-    this.player().error(this.error().code);
-
-  // in some cases we pass the event directly to the player
-  } else {
-    // No need for media events to bubble up.
-    evt.bubbles = false;
-
-    this.player().trigger(evt);
-  }
-};
 
 /* Flash Support Testing -------------------------------------------------------- */
 
@@ -5725,8 +5702,7 @@ ajs.Flash.getEmbedCode = function(swf, flashVars, params, attributes){
   params = ajs.obj.merge({
     'movie': swf,
     'FlashVars': flashVarsString,
-    'AllowScriptAccess': 'always', // Required to talk to swf
-    'allowNetworking': 'all' // All should be default, but having security issues.
+    'AllowScriptAccess': 'always'
   }, params);
 
   // Create param tags string
