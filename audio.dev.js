@@ -5348,8 +5348,9 @@ ajs.Flash = ajs.MediaTechController.extend({
         flashVars = ajs.obj.merge({
 
           // SWF Callback Functions
-          'listener': 'audiojs.Flash.listener',
-          'interval': '500'
+          'listener': "audiojs.Players['"+player.id()+"']",
+          'interval': '500',
+          'useexternalinterface':1
           // Player Settings
           
         }, options['flashVars']),
@@ -5415,7 +5416,20 @@ ajs.Flash = ajs.MediaTechController.extend({
         }));
       });
     }
-
+    player['listener']=new Object();
+    player['listener'].onInit = function()
+            {
+                this.position = 0;
+            };
+        
+    player['listener'].onUpdate = function()
+        {
+           var isPlaying = this.isPlaying;
+           var url = this.url;
+           var volume = this.volume;
+           var position = this.position;
+           var duration = this.duration;
+        };
     // native click events on the SWF aren't triggered on IE11, Win8.1RT
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
@@ -5505,20 +5519,7 @@ ajs.Flash.prototype.load = function(){
   this.el_.ajs_load();
 };
 
-ajs.Flash['listener']=new Object();
-ajs.Flash['listener'].onInit = function()
-        {
-            this.position = 0;
-        };
-    
-ajs.Flash['listener'].onUpdate = function()
-    {
-       var isPlaying = this.isPlaying;
-       var url = this.url;
-       var volume = this.volume;
-       var position = this.position;
-       var duration = this.duration;
-    };
+
 
 
 ajs.Flash.prototype.buffered = function(){
@@ -5607,7 +5608,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (ajs.Flash['listener'].position==0) {
+  if (tech['listener'].position==0) {
 
     // If so, tell tech it's ready
     tech.triggerReady();
