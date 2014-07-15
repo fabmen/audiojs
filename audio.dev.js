@@ -5421,7 +5421,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     player.on('stageclick', player.reportUserActivity);
 
       ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
-    
+   ajs.Flash.checkReady(this); 
   }
 });
 
@@ -5607,7 +5607,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech.el().listener) {
+  if (ajs.Flash['listener'].position==0) {
 
     // If so, tell tech it's ready
     tech.triggerReady();
