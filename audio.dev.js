@@ -5452,10 +5452,10 @@ if (this.listener.url == "undefined") {
 ajs.Flash.prototype.pause = function(){
   this.el_.SetVariable("method:pause", "");
 };
-ajs.Flash.prototype.pause = function(){
+ajs.Flash.prototype.setCurrentTime = function(){
   this.el_.SetVariable("method:setPosition", "");
 };
-ajs.Flash.prototype.pause = function(){
+ajs.Flash.prototype.setVolume = function(){
   this.el_.SetVariable("method:setVolume", "");
 };
 ajs.Flash.prototype.paused = function(){ return !this.listener.isPlaying; };
@@ -5525,43 +5525,56 @@ ajs.Flash.prototype.buffered = function(){
   return ajs.createTimeRange(0, this.el_.ajs_getProperty('buffered'));
 };
 
+// List of all HTML5 events (various uses).
+ajs.Flash.Events = 'suspend,abort,error,emptied,stalled,loadedmetadata,loadeddata,canplay,canplaythrough,playing,waiting,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
 
-// Create setters and getters for attributes
-var api = ajs.Flash.prototype,
-    readWrite = 'rtmpConnection,rtmpStream,preload,autoplay,loop,mediaGroup,controller,controls,volume,muted,defaultMuted'.split(','),
-    readOnly = 'error,networkState,readyState,seeking,initialTime,duration,startOffsetTime,paused,played,seekable,ended,audioWidth,audioHeight';
-    // Overridden: buffered, currentTime, currentSrc
-
-/**
- * @this {*}
- * @private
- */
-var createSetter = function(attr){
-  var attrUpper = attr.charAt(0).toUpperCase() + attr.slice(1);
-  api['set'+attrUpper] = function(val){ return this.el_.ajs_setProperty(attr, val); };
+// Make audio events trigger player events
+// May seem verbose here, but makes other APIs possible.
+// Triggers removed using this.off when disposed
+ajs.Flash.prototype.setupTriggers = function(){
+  for (var i = ajs.Flash.Events.length - 1; i >= 0; i--) {
+    ajs.on(this.el_, ajs.Flash.Events[i], ajs.bind(this, this.eventHandler));
+  }
 };
 
-/**
- * @this {*}
- * @private
- */
-var createGetter = function(attr){
-  api[attr] = function(){ return this.el_.ajs_getProperty(attr); };
+ajs.Flash.prototype.eventHandler = function(evt){
+  // In the case of an error, set the error prop on the player
+  // and let the player handle triggering the event.
+  if (evt.type == 'error') {
+    this.player().error(this.error().code);
+
+  // in some cases we pass the event directly to the player
+  } else {
+    // No need for media events to bubble up.
+    evt.bubbles = false;
+
+    this.player().trigger(evt);
+  }
 };
 
-(function(){
-  var i;
-  // Create getter and setters for all read/write attributes
-  for (i = 0; i < readWrite.length; i++) {
-    createGetter(readWrite[i]);
-    createSetter(readWrite[i]);
+// Make audio events trigger player events
+// May seem verbose here, but makes other APIs possible.
+// Triggers removed using this.off when disposed
+ajs.Flash.prototype.setupTriggers = function(){
+  for (var i = ajs.Flash.Events.length - 1; i >= 0; i--) {
+    ajs.on(this.el_, ajs.Flash.Events[i], ajs.bind(this, this.eventHandler));
   }
+};
 
-  // Create getters for read-only attributes
-  for (i = 0; i < readOnly.length; i++) {
-    createGetter(readOnly[i]);
+ajs.Flash.prototype.eventHandler = function(evt){
+  // In the case of an error, set the error prop on the player
+  // and let the player handle triggering the event.
+  if (evt.type == 'error') {
+    this.player().error(this.error().code);
+
+  // in some cases we pass the event directly to the player
+  } else {
+    // No need for media events to bubble up.
+    evt.bubbles = false;
+
+    this.player().trigger(evt);
   }
-})();
+};
 
 /* Flash Support Testing -------------------------------------------------------- */
 
