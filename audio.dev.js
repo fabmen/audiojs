@@ -5607,7 +5607,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech.el().ajs_getProperty) {
+  if (tech.el().listener) {
 
     // If so, tell tech it's ready
     tech.triggerReady();
