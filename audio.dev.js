@@ -5327,20 +5327,7 @@ ajs.Flash = ajs.MediaTechController.extend({
   /** @constructor */
   init: function(player, options, ready){
     ajs.MediaTechController.call(this, player, options, ready);
-    var listener=new Object();
-    listener.onInit = function()
-        {
-            this.position = 0;
-        };
     
-    listener.onUpdate = function()
-    {
-       var isPlaying = this.isPlaying;
-       var url = this.url;
-       var volume = this.volume;
-       var position = this.position;
-       var duration = this.duration;
-    };
     var source = options['source'],
 
         // Which element to embed in
@@ -5518,7 +5505,20 @@ ajs.Flash.prototype.load = function(){
   this.el_.ajs_load();
 };
 
-
+ajs.Flash['listener']=new Object();
+ajs.Flash['listener'].onInit = function()
+        {
+            this.position = 0;
+        };
+    
+ajs.Flash['listener'].onUpdate = function()
+    {
+       var isPlaying = this.isPlaying;
+       var url = this.url;
+       var volume = this.volume;
+       var position = this.position;
+       var duration = this.duration;
+    };
 
 
 ajs.Flash.prototype.buffered = function(){
