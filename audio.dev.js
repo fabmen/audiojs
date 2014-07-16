@@ -5343,7 +5343,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     var    flashVars = {
 
           // SWF Callback Functions
-          'listener': "audiojs.players."+objId+".listener_",
+          'listener': "audiojs.Flash.listeners_."+objId,
           'useexternalinterface':1
           // Player Settings
           
@@ -5413,20 +5413,11 @@ ajs.Flash = ajs.MediaTechController.extend({
     ajs.Flash.checkReady(this); 
   }
 });
-ajs.Flash['listener']=new Object();
-ajs.Flash['listener'].onInit = function()
-            {
-                this.position = 0;
-            };
+ajs.Flash.prototype.addListeners=function(swfId){
+                this.listeners_[swfId] = new Object;
+};
         
- ajs.Flash['listener'].onUpdate = function()
-        {
-           var isPlaying = this.isPlaying;
-           var url = this.url;
-           var volume = this.volume;
-           var position = this.position;
-           var duration = this.duration;
-        };
+
 ajs.Flash.prototype.dispose = function(){
   ajs.MediaTechController.prototype.dispose.call(this);
 };
@@ -5590,7 +5581,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech.listener_.oooupdate!==undefined) {
+  if (ajs.Flash.listeners_[tech.id].oooupdate!==undefined) {
 	  
 
     // If so, tell tech it's ready
