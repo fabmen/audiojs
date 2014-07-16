@@ -5343,7 +5343,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     var    flashVars = {
 
           // SWF Callback Functions
-          'listener': "audiojs.players."+objId+"listener_",
+          'listener': "audiojs.players."+objId+".listener_",
           'useexternalinterface':1
           // Player Settings
           
@@ -5408,8 +5408,9 @@ ajs.Flash = ajs.MediaTechController.extend({
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
 
-    player.tag=this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
-   ajs.Flash.checkReady(this); 
+    this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
+    player.tag = this.el_;
+    ajs.Flash.checkReady(this); 
   }
 });
 ajs.Flash['listener']=new Object();
@@ -5589,7 +5590,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (ajs.Flash.listener.oooupdate!==undefined) {
+  if (tech.listener_.oooupdate!==undefined) {
 	  
 
     // If so, tell tech it's ready
