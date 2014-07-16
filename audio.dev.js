@@ -5409,7 +5409,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
 
-    this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
+    player.tag=this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
    ajs.Flash.checkReady(this); 
   }
 });
@@ -5509,7 +5509,7 @@ ajs.Flash.prototype.buffered = function(){
 };
 
 // List of all HTML5 events (various uses).
-ajs.Flash.Events = 'loadstart,canplay,playing,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
+ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
 
 // Make audio events trigger player events
 // May seem verbose here, but makes other APIs possible.
