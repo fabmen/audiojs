@@ -5343,8 +5343,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     var    flashVars = {
 
           // SWF Callback Functions
-          'listener': "audiojs.Flash['listener']",
-          'interval': '500',
+          'listener': "audiojs.players."+objId+"listener_",
           'useexternalinterface':1
           // Player Settings
           
@@ -5368,7 +5367,7 @@ ajs.Flash = ajs.MediaTechController.extend({
         flashVars['src'] = encodeURIComponent(ajs.getAbsoluteURL(source.src));
       }
     }
-
+    this['listener_']=new Object;
     this['setCurrentTime'] = function(time){
       
     };
