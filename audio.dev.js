@@ -5344,7 +5344,8 @@ ajs.Flash = ajs.MediaTechController.extend({
 
           // SWF Callback Functions
           'listener': "ajs.Flash.listeners_['"+objId+"']",
-          //'interval':'500'
+          'interval':'125',
+          'enabled':true,
 	  'useexternalinterface':1
           // Player Settings
           
@@ -5360,30 +5361,30 @@ ajs.Flash = ajs.MediaTechController.extend({
     // If source was supplied pass as a flash var.
         this['src'] = source.src;
     ajs.Flash.addListeners(objId);
-    this['setCurrentTime'] = function(time){
+ //   this['setCurrentTime'] = function(time){
       
-    };
-    this['currentTime'] = function(time){
+   // };
+    //this['currentTime'] = function(time){
       // when seeking make the reported time keep up with the requested time
       // by reading the time we're seeking to
-      if (this.seeking()) {
-        return false;
-      }
-      return true;
-    };
+    //  if (this.seeking()) {
+      //  return false;
+      //}
+      //return true;
+    //};
 
     // Add placeholder to player div
     ajs.insertFirst(placeHolder, parentEl);
 
     // Having issues with Flash reloading on certain page actions (hide/resize/fullscreen) in certain browsers
     // This allows resetting the playhead when we catch the reload
-    if (options['startTime']) {
+    /*if (options['startTime']) {
       this.ready(function(){
         this.load();
         this.play();
         this.currentTime(options['startTime']);
       });
-    }
+    }*/
 
     // firefox doesn't bubble mousemove events to parent. audiojs/audio-js-swf#37
     // bugzilla bug: https://bugzilla.mozilla.org/show_bug.cgi?id=836786
@@ -5408,12 +5409,12 @@ ajs.Flash = ajs.MediaTechController.extend({
 ajs.Flash['listeners_']=new Object;
 ajs.Flash.addListeners=function(swfId){
                 this.listeners_[swfId] = new Object;
-	//	this.listeners_[swfId].onInit = function (){
-	//		this.position=0;}
-	//	this.listeners_[swfId].onUpdate = function(){
-
-	//	}
-
+	/*	this.listeners_[swfId].onInit = function (){
+			this.position=0;}
+		this.listeners_[swfId].onUpdate = function(){
+                     this.position;
+		}
+*/
 
 };
         
@@ -5423,30 +5424,40 @@ ajs.Flash.prototype.dispose = function(){
 };
 
 ajs.Flash.prototype.play = function(){
-if (ajs.Flash.listeners_[this.el_.id].url == undefined) {
+if (ajs.Flash.listeners_[this.el_.id].url == "undefined") {
 	this.el_.SetVariable("method:setUrl", this.src);
                 }
   this.el_.SetVariable("method:play", "");
+  this.trigger("play");
 };
 
 ajs.Flash.prototype.pause = function(){
   this.el_.SetVariable("method:pause", "");
+  this.trigger("pause");
 };
-ajs.Flash.prototype.currentTime = function(){ return ajs.Flash.listeners_[this.el_.id].position; };
+ajs.Flash.prototype.currentTime = function(){ return ajs.Flash.listeners_[this.el_.id].position/1000; };
 
-ajs.Flash.prototype.setCurrentTime = function(){
-  this.el_.SetVariable("method:setPosition", "");
+ajs.Flash.prototype.setCurrentTime = function(seconds){
+  this.el_.SetVariable("method:setPosition", seconds*1000);
+  this.trigger("seeked");
 };
-ajs.Flash.prototype.setVolume = function(){
-  this.el_.SetVariable("method:setVolume", "");
+ajs.Flash.prototype.setVolume = function(percentAsDecimal){
+  this.el_.SetVariable("method:setVolume", percentAsDecimal*100);
+ // this.trigger("volumechange");
 };
-ajs.Flash.prototype.paused = function(){ return this.el_.paused;; };
+ajs.Flash.prototype.paused = function(){ return ajs.Flash.listeners_[this.el_.id].isPlaying=="false"; };
 
-ajs.Flash.prototype.duration = function(){ return ajs.Flash.listeners_[this.el_.id].duration || 0; };
+ajs.Flash.prototype.duration = function(){ return ajs.Flash.listeners_[this.el_.id].duration/1000 || 0; };
 
-ajs.Flash.prototype.volume = function(){ return ajs.Flash.listeners_[this.el_.id].volume; };
-ajs.Flash.prototype.muted = function(){ return this.el_.muted; };
-ajs.Flash.prototype.setMuted = function(muted){ this.el_.muted = muted; };
+ajs.Flash.prototype.volume = function(){ return ajs.Flash.listeners_[this.el_.id].volume/100; };
+ajs.Flash.prototype.muted = function(){ return ajs.Flash.listeners_[this.el_.id].volume=="0"; };
+ajs.Flash.prototype.setMuted = function(muted){ 
+	if (muted) {
+		this.el_.SetVariable("method:setVolume","0");
+	}else{
+		this.el_.SetVariable("method:setVolume","100");}
+//	this.trigger("volumechange");
+};
 
 ajs.Flash.prototype.src = function(src){
   if (src === undefined) {
@@ -5486,20 +5497,20 @@ ajs.Flash.prototype.currentSrc = function(){
 };
 
 ajs.Flash.prototype.load = function(){
-  this.el_.ajs_load();
+	this.el_.SetVariable("method:setUrl", this.src);
+	this.trigger("loadstart")	;
 };
 
 ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
 ajs.Flash.prototype.height = function(){ return this.el_.offsetHeight; };
 
 
-
 ajs.Flash.prototype.buffered = function(){
-  return ajs.createTimeRange(0, this.el_.ajs_getProperty('buffered'));
+	var buffer= this.duration()*ajs.Flash.listeners_[this.el_.id].bytesLoaded/ajs.Flash.listeners_[this.el_.id].bytesTotal;  
+	return ajs.createTimeRange(0, buffer);
 };
-
 // List of all HTML5 events (various uses).
-ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
+ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,seeked,timeupdate,progress,play,pause,volumechange'.split(',');
 
 // Make audio events trigger player events
 // May seem verbose here, but makes other APIs possible.
