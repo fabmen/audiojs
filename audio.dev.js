@@ -5608,7 +5608,8 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech.player_.listener.position!==undefined) {
+  if (ajs.Flash.listener.oooupdate!==undefined) {
+	  
 
     // If so, tell tech it's ready
     tech.triggerReady();
