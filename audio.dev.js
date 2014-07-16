@@ -5328,24 +5328,19 @@ ajs.Flash = ajs.MediaTechController.extend({
   init: function(player, options, ready){
     ajs.MediaTechController.call(this, player, options, ready);
     
-    var source = options['source'],
-
+    var source = options['source'];
         // Which element to embed in
-        parentEl = options['parentEl'],
-
+    var    parentEl = options['parentEl'];
         // Create a temporary element to be replaced by swf object
-        placeHolder = this.el_ = ajs.createEl('div', { id: player.id() + '_temp_flash' }),
-
+    var    placeHolder = ajs.createEl('div', { id: player.id() + '_temp_flash' });
         // Generate ID for swf object
-        objId = player.id()+'_flash_api',
-
+    var    objId = player.id()+'_flash_api';
         // Store player options in local var for optimization
         // TODO: switch to using player methods instead of options
         // e.g. player.autoplay();
-        playerOptions = player.options_,
-
+    var    playerOptions = player.options_;
         // Merge default flashvars with ones passed in to init
-        flashVars = {
+    var    flashVars = {
 
           // SWF Callback Functions
           'listener': "audiojs.Flash['listener']",
@@ -5353,23 +5348,17 @@ ajs.Flash = ajs.MediaTechController.extend({
           'useexternalinterface':1
           // Player Settings
           
-        },
-
+        };
         // Merge default parames with ones passed in
-        params = ajs.obj.merge( options['params']),
-
+     var   params =  options['params'];
         // Merge default attributes with ones passed in
-        attributes = ajs.obj.merge({
+     var   attributes = ajs.obj.merge({
           'id': objId,
           'name': objId, // Both ID and Name needed or swf to identifty itself
           'class': 'ajs-tech'
-        }, options['attributes']),
-
-        lastSeekTarget
-    ;
-
+        }, options['attributes']);
     // If source was supplied pass as a flash var.
-    /*if (source) {
+    if (source) {
       if (source.type && ajs.Flash.isStreamingType(source.type)) {
         var parts = ajs.Flash.streamToParts(source.src);
         flashVars['rtmpConnection'] = encodeURIComponent(parts.connection);
@@ -5379,18 +5368,17 @@ ajs.Flash = ajs.MediaTechController.extend({
         flashVars['src'] = encodeURIComponent(ajs.getAbsoluteURL(source.src));
       }
     }
-*/
+
     this['setCurrentTime'] = function(time){
-      lastSeekTarget = time;
-      this.el_.ajs_setProperty('currentTime', time);
+      
     };
     this['currentTime'] = function(time){
       // when seeking make the reported time keep up with the requested time
       // by reading the time we're seeking to
       if (this.seeking()) {
-        return lastSeekTarget;
+        return false;
       }
-      return this.el_.ajs_getProperty('currentTime');
+      return true;
     };
 
     // Add placeholder to player div
@@ -5421,7 +5409,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
 
-      ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
+    this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
    ajs.Flash.checkReady(this); 
   }
 });
@@ -5453,23 +5441,15 @@ if (this.listener.url == "undefined") {
 ajs.Flash.prototype.pause = function(){
   this.el_.SetVariable("method:pause", "");
 };
+ajs.Flash.prototype.currentTime = function(){ return this.el_.currentTime; };
+
 ajs.Flash.prototype.setCurrentTime = function(){
   this.el_.SetVariable("method:setPosition", "");
 };
 ajs.Flash.prototype.setVolume = function(){
   this.el_.SetVariable("method:setVolume", "");
 };
-ajs.Flash.prototype.paused = function(){ return !this.listener.isPlaying; };
-
-ajs.Flash.prototype.currentTime = function(){ return this.listener.position; };
-ajs.Flash.prototype.setCurrentTime = function(seconds){
-  try {
-    this.el_.currentTime = seconds;
-  } catch(e) {
-    ajs.log(e, 'audio is not ready. (audio.js)');
-    // this.warning(audioJS.warnings.audioNotReady);
-  }
-};
+ajs.Flash.prototype.paused = function(){ return this.el_.paused;; };
 
 ajs.Flash.prototype.duration = function(){ return this.listener.duration || 0; };
 
@@ -5519,6 +5499,8 @@ ajs.Flash.prototype.load = function(){
   this.el_.ajs_load();
 };
 
+ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
+ajs.Flash.prototype.height = function(){ return this.el_.offsetHeight; };
 
 
 
