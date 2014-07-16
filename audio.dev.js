@@ -5343,7 +5343,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     var    flashVars = {
 
           // SWF Callback Functions
-          'listener': "ajs.Flash.listeners['"+objId+"']",
+          'listener': "ajs.Flash.listeners_['"+objId+"']",
           'useexternalinterface':1
           // Player Settings
           
@@ -5413,9 +5413,9 @@ ajs.Flash = ajs.MediaTechController.extend({
     ajs.Flash.checkReady(this); 
   }
 });
-ajs.Flash['listeners']=new Object;
+ajs.Flash['listeners_']=new Object;
 ajs.Flash.addListeners=function(swfId){
-                this.listeners[swfId] = new Object;
+                this.listeners_[swfId] = new Object;
 };
         
 
@@ -5424,29 +5424,28 @@ ajs.Flash.prototype.dispose = function(){
 };
 
 ajs.Flash.prototype.play = function(){
-if (this.listener.url == "undefined") {
-                 this.el_.SetVariable("method:setUrl", this.src());
+if (ajs.Flash.listeners_[this.el_.id].url == "undefined") {
+                ajs.Flash.listeners_[this.el_.id].SetVariable("method:setUrl", this.src());
                 }
-  this.el_.SetVariable("method:play", "");
+  ajs.Flash.listeners_[this.el_.id].SetVariable("method:play", "");
 };
 
 ajs.Flash.prototype.pause = function(){
-  this.el_.SetVariable("method:pause", "");
+  ajs.Flash.listeners_[this.el_.id]..SetVariable("method:pause", "");
 };
-ajs.Flash.prototype.currentTime = function(){ return this.el_.currentTime; };
+ajs.Flash.prototype.currentTime = function(){ return ajs.Flash.listeners_[this.el_.id].position; };
 
 ajs.Flash.prototype.setCurrentTime = function(){
-  this.el_.SetVariable("method:setPosition", "");
+  ajs.Flash.listeners_[this.el_.id].SetVariable("method:setPosition", "");
 };
 ajs.Flash.prototype.setVolume = function(){
-  this.el_.SetVariable("method:setVolume", "");
+  ajs.Flash.listeners_[this.el_.id].SetVariable("method:setVolume", "");
 };
 ajs.Flash.prototype.paused = function(){ return this.el_.paused;; };
 
-ajs.Flash.prototype.duration = function(){ return this.listener.duration || 0; };
+ajs.Flash.prototype.duration = function(){ return ajs.Flash.listeners_[this.el_.id].duration || 0; };
 
-ajs.Flash.prototype.volume = function(){ return this.listener.volume; };
-ajs.Flash.prototype.setVolume = function(percentAsDecimal){ this.el_.volume = percentAsDecimal; };
+ajs.Flash.prototype.volume = function(){ return ajs.Flash.listeners_[this.el_.id].volume; };
 ajs.Flash.prototype.muted = function(){ return this.el_.muted; };
 ajs.Flash.prototype.setMuted = function(muted){ this.el_.muted = muted; };
 
@@ -5474,7 +5473,7 @@ ajs.Flash.prototype.src = function(src){
 };
 
 ajs.Flash.prototype.currentSrc = function(){
-  var src = this.el_.ajs_getProperty('currentSrc');
+  var src = ajs.Flash.listeners_[this.el_.id].url;
   // no src, check and see if RTMP
   if (src == null) {
     var connection = this['rtmpConnection'](),
@@ -5582,7 +5581,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (ajs.Flash.listeners[tech.el_.id].oooupdate!==undefined) {
+  if (ajs.Flash.listeners_[tech.el_.id].oooupdate!==undefined) {
 	  
 
     // If so, tell tech it's ready
