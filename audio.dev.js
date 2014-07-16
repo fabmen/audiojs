@@ -5345,15 +5345,14 @@ ajs.Flash = ajs.MediaTechController.extend({
         playerOptions = player.options_,
 
         // Merge default flashvars with ones passed in to init
-        flashVars = ajs.obj.merge({
+        flashVars = {
 
           // SWF Callback Functions
-          'listener': "audiojs.Players['"+player.id()+"']",
-          'interval': '500',
-          'useexternalinterface':1
+          'listener': "audiojs.players['"+player.id()+"']",
+          'interval': '500'
           // Player Settings
           
-        }, options['flashVars']),
+        },
 
         // Merge default parames with ones passed in
         params = ajs.obj.merge( options['params']),
@@ -5608,7 +5607,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech['listener'].position==0) {
+  if (tech.player_.listener.position!==undefined) {
 
     // If so, tell tech it's ready
     tech.triggerReady();
