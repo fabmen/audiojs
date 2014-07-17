@@ -5319,10 +5319,20 @@ ajs.flashApi= function (swfId,tech){
     this.tech=tech;
     };
 ajs.flashApi.prototype.onInit = function (){
-            this.position=0;
-            this.url=this.tech.src;};
+		    var url=this.tech.currentSrc();
+                    this.tech.el_.SetVariable("method:setUrl",url);
+};
+
 ajs.flashApi.prototype.onUpdate = function(){
                      
+            if (this.url == "undefined"){
+		    var url=this.tech.currentSrc();
+                    this.tech.el_.SetVariable("method:setUrl",url);
+	    }
+	    if (this.tech.player_.cache_['volume']!=(this.volume/100)){
+	        this.tech.player_.cache_['volume']=this.volume/100;
+		this.tech.trigger("volumechange");
+	    }
         };
 
 /**
@@ -5352,10 +5362,9 @@ ajs.Flash = ajs.MediaTechController.extend({
         // Merge default flashvars with ones passed in to init
     var    flashVars = {
           // SWF Callback Functions
-          'listener': "ajs.cache."+parentEl[ajs.expando]+"['listener']",
+          'listener': "ajs.cache['"+parentEl[ajs.expando]+"']['listener']",
           'interval':'125',
-          'enabled':true,
-          'useexternalinterface':1
+          'enabled':true
           // Player Settings
         };
         // Merge default parames with ones passed in
@@ -5367,7 +5376,7 @@ ajs.Flash = ajs.MediaTechController.extend({
           'class': 'ajs-tech'
         }, options['attributes']);
     // If source was supplied pass as a flash var.
-        this.src = source.src;
+        this.source = source.src;
     this.listener=ajs.getData(parentEl).listener=new ajs.flashApi(objId,this);
  //   this['setCurrentTime'] = function(time){
       
@@ -5422,7 +5431,7 @@ ajs.Flash.prototype.dispose = function(){
 };
 
 ajs.Flash.prototype.play = function(){
-if (ajs.Flash.listeners_[this.el_.id].url == "undefined") {
+if (this.listener.url == "undefined") {
     this.el_.SetVariable("method:setUrl", this.src);
                 }
   this.el_.SetVariable("method:play", "");
@@ -5434,28 +5443,26 @@ ajs.Flash.prototype.pause = function(){
     var tech = this;
   setTimeout(function(){this.trigger("pause");},50);
 };
-ajs.Flash.prototype.paused = function(){ return ajs.Flash.listeners_[this.el_.id].isPlaying == "false"; };
+ajs.Flash.prototype.paused = function(){ return this.listener.isPlaying == "false"; };
 
-ajs.Flash.prototype.currentTime = function(){ return ajs.Flash.listeners_[this.el_.id].position / 1000; };
+ajs.Flash.prototype.currentTime = function(){ return this.listener.position / 1000; };
 ajs.Flash.prototype.setCurrentTime = function(seconds){
   this.el_.SetVariable("method:setPosition", seconds * 1000);
     var tech = this;
    setTimeout(function(){ tech.trigger("seeked");}, 50); 
 };
 
-ajs.Flash.prototype.duration = function(){ return ajs.Flash.listeners_[this.el_.id].duration / 1000 || 0; };
+ajs.Flash.prototype.duration = function(){ return this.listener.duration / 1000 || 0; };
 ajs.Flash.prototype.buffered = function(){
-    var buffer= this.duration()*ajs.Flash.listeners_[this.el_.id].bytesLoaded/ajs.Flash.listeners_[this.el_.id].bytesTotal;  
+    var buffer= this.duration()*this.listener.bytesLoaded/this.listener.bytesTotal;  
     return ajs.createTimeRange(0, buffer);
 };
 
-ajs.Flash.prototype.volume = function(){ return ajs.Flash.listeners_[this.el_.id].volume / 100; };
+ajs.Flash.prototype.volume = function(){ return this.listener.volume / 100; };
 ajs.Flash.prototype.setVolume = function(percentAsDecimal){
   this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
-    var tech = this;
-  setTimeout(function(){ tech.trigger("volumechange"); }, 50); 
 };
-ajs.Flash.prototype.muted = function(){ return ajs.Flash.listeners_[this.el_.id].volume == "0"; };
+ajs.Flash.prototype.muted = function(){ return this.listener.volume == "0"; };
 ajs.Flash.prototype.setMuted = function(muted){ 
     if (muted) {
         this.el_.SetVariable("method:setVolume","0");
@@ -5473,15 +5480,15 @@ ajs.Flash.prototype.src = function(src){
     return this.currentSrc();
   }
 
-  if (ajs.Flash.isStreamingSrc(src)) {
-    src = ajs.Flash.streamToParts(src);
-    this.setRtmpConnection(src.connection);
-    this.setRtmpStream(src.stream);
-  } else {
+//  if (ajs.Flash.isStreamingSrc(src)) {
+//    src = ajs.Flash.streamToParts(src);
+//    this.setRtmpConnection(src.connection);
+//    this.setRtmpStream(src.stream);
+//  } else {
     // Make sure source URL is abosolute.
     src = ajs.getAbsoluteURL(src);
      this.el_.SetVariable("method:setUrl", src);
-  }
+//  }
 
   // Currently the SWF doesn't autoplay if you load a source later.
   // e.g. Load player w/ no source, wait 2s, set src.
@@ -5495,15 +5502,16 @@ ajs.Flash.prototype.load = function(){
     this.trigger("loadstart")   ;
 };
 ajs.Flash.prototype.currentSrc = function(){
-  var src = ajs.Flash.listeners_[this.el_.id].url;
+  var src = this.listener.url;
   // no src, check and see if RTMP
-  if (src == "undefined") {
-    var connection = this['rtmpConnection'](),
-        stream = this['rtmpStream']();
+  if ((src == "undefined")||(src == undefined)) {
+  //  var connection = this['rtmpConnection'](),
+  //      stream = this['rtmpStream']();
 
-    if (connection && stream) {
-      src = ajs.Flash.streamFromParts(connection, stream);
-    }
+//    if (connection && stream) {
+//      src = ajs.Flash.streamFromParts(connection, stream);
+  //  }
+      return this.source;
   }
   return src;
 };
@@ -5608,13 +5616,14 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (tech.listener.position!==undefined) {
+  if (tech.listener.url!==undefined) {
       
 
     // If so, tell tech it's ready
     tech.triggerReady();
-
+  
   // Otherwise wait longer.
+  
   } else {
 
     setTimeout(function(){
