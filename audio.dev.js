@@ -5426,18 +5426,21 @@ if (ajs.Flash.listeners_[this.el_.id].url == "undefined") {
     this.el_.SetVariable("method:setUrl", this.src);
                 }
   this.el_.SetVariable("method:play", "");
-  this.trigger("play");
+    var tech = this;
+  setTimeout(function(){tech.trigger("play");},50);
 };
 ajs.Flash.prototype.pause = function(){
   this.el_.SetVariable("method:pause", "");
-  this.trigger("pause");
+    var tech = this;
+  setTimeout(function(){this.trigger("pause");},50);
 };
 ajs.Flash.prototype.paused = function(){ return ajs.Flash.listeners_[this.el_.id].isPlaying == "false"; };
 
 ajs.Flash.prototype.currentTime = function(){ return ajs.Flash.listeners_[this.el_.id].position / 1000; };
 ajs.Flash.prototype.setCurrentTime = function(seconds){
   this.el_.SetVariable("method:setPosition", seconds * 1000);
-   setTimeout(function(){ this.trigger("seeked");}, 50); 
+    var tech = this;
+   setTimeout(function(){ tech.trigger("seeked");}, 50); 
 };
 
 ajs.Flash.prototype.duration = function(){ return ajs.Flash.listeners_[this.el_.id].duration / 1000 || 0; };
@@ -5449,7 +5452,8 @@ ajs.Flash.prototype.buffered = function(){
 ajs.Flash.prototype.volume = function(){ return ajs.Flash.listeners_[this.el_.id].volume / 100; };
 ajs.Flash.prototype.setVolume = function(percentAsDecimal){
   this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
-  setTimeout(function(){ this.trigger("volumechange"); }, 50); 
+    var tech = this;
+  setTimeout(function(){ tech.trigger("volumechange"); }, 50); 
 };
 ajs.Flash.prototype.muted = function(){ return ajs.Flash.listeners_[this.el_.id].volume == "0"; };
 ajs.Flash.prototype.setMuted = function(muted){ 
@@ -5457,7 +5461,8 @@ ajs.Flash.prototype.setMuted = function(muted){
         this.el_.SetVariable("method:setVolume","0");
     }else{
         this.el_.SetVariable("method:setVolume","100");}
-    setTimeout(function(){ this.trigger("volumechange"); }, 50); 
+    var tech = this;
+    setTimeout(function(){ tech.trigger("volumechange"); }, 50); 
 };
 
 ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
