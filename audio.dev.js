@@ -5314,6 +5314,16 @@ ajs.Html5.disposeMediaElement = function(el){
  * https://github.com/neolao/mp3-player
  * Not using setupTriggers. Using global onEvent func to distribute events
  */
+ajs.flashApi= function (swfId,tech){
+    this.id=swfId;
+    this.tech=tech;
+    };
+ajs.flashApi.prototype.onInit = function (){
+            this.position=0;
+            this.url=this.tech.src;};
+ajs.flashApi.prototype.onUpdate = function(){
+                     
+        };
 
 /**
  * Flash Media Controller - Wrapper for fallback SWF API
@@ -5342,7 +5352,7 @@ ajs.Flash = ajs.MediaTechController.extend({
         // Merge default flashvars with ones passed in to init
     var    flashVars = {
           // SWF Callback Functions
-          'listener': "ajs.Flash.listeners_['"+objId+"']",
+          'listener': "ajs.cache."+parentEl[ajs.expando]+"['listener']",
           'interval':'125',
           'enabled':true,
           'useexternalinterface':1
@@ -5357,8 +5367,8 @@ ajs.Flash = ajs.MediaTechController.extend({
           'class': 'ajs-tech'
         }, options['attributes']);
     // If source was supplied pass as a flash var.
-        this['src'] = source.src;
-    ajs.Flash.addListeners(objId);
+        this.src = source.src;
+    this.listener=ajs.getData(parentEl).listener=new ajs.flashApi(objId,this);
  //   this['setCurrentTime'] = function(time){
       
    // };
@@ -5404,17 +5414,7 @@ ajs.Flash = ajs.MediaTechController.extend({
     ajs.Flash.checkReady(this); 
   }
 });
-ajs.Flash['listeners_']=new Object;
-ajs.Flash.addListeners=function(swfId){
-                this.listeners_[swfId] = new Object;
-    /*  this.listeners_[swfId].onInit = function (){
-            this.position=0;}
-        this.listeners_[swfId].onUpdate = function(){
-                     this.position;
-        }
-*/
 
-};
         
 
 ajs.Flash.prototype.dispose = function(){
@@ -5608,7 +5608,7 @@ ajs.Flash['onReady'] = function(currSwf){
 ajs.Flash.checkReady = function(tech){
 
   // Check if API property exists
-  if (ajs.Flash.listeners_[tech.el_.id].oooupdate!==undefined) {
+  if (tech.listener.position!==undefined) {
       
 
     // If so, tell tech it's ready
