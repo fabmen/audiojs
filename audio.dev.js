@@ -3192,2388 +3192,2388 @@ ajs.Player.prototype.trackProgress = function(){
     // Don't trigger unless buffered amount is greater than last time
     // log(this.cache_.bufferEnd, this.buffered().end(0), this.duration())
     /* TODO: update for multiple buffered regions */
-    if (this.cache_.bufferEnd < this.buffered().end(0)) {
-      this.trigger('progress');
-    } else if (this.bufferedPercent() == 1) {
-      this.stopTrackingProgress();
-      this.trigger('progress'); // Last update
-    }
-  }), 500);
-};
-ajs.Player.prototype.stopTrackingProgress = function(){ clearInterval(this.progressInterval); };
-
-/*! Time Tracking -------------------------------------------------------------- */
-ajs.Player.prototype.manualTimeUpdatesOn = function(){
-  this.manualTimeUpdates = true;
-
-  this.on('play', this.trackCurrentTime);
-  this.on('pause', this.stopTrackingCurrentTime);
-  // timeupdate is also called by .currentTime whenever current time is set
-
-  // Watch for native timeupdate event
-  if (this.tech) {
-    this.tech.one('timeupdate', function(){
-      // Update known progress support for this playback technology
-      this.features['timeupdateEvents'] = true;
-      // Turn off manual progress tracking
-      this.player_.manualTimeUpdatesOff();
-    });
-  }
-};
-
-ajs.Player.prototype.manualTimeUpdatesOff = function(){
-  this.manualTimeUpdates = false;
-  this.stopTrackingCurrentTime();
-  this.off('play', this.trackCurrentTime);
-  this.off('pause', this.stopTrackingCurrentTime);
-};
-
-ajs.Player.prototype.trackCurrentTime = function(){
-  if (this.currentTimeInterval) { this.stopTrackingCurrentTime(); }
-  this.currentTimeInterval = setInterval(ajs.bind(this, function(){
-    this.trigger('timeupdate');
-  }), 250); // 42 = 24 fps // 250 is what Webkit uses // FF uses 15
-};
-
-// Turn off play progress tracking (when paused or dragging)
-ajs.Player.prototype.stopTrackingCurrentTime = function(){
-  clearInterval(this.currentTimeInterval);
-
-  // #1002 - if the audio ends right before the next timeupdate would happen,
-  // the progress bar won't make it all the way to the end
-  this.trigger('timeupdate');
-};
-// /* Player event handlers (how the player reacts to certain events)
-// ================================================================================ */
-
-/**
- * Fired when the user agent begins looking for media data
- * @event loadstart
- */
-ajs.Player.prototype.onLoadStart = function() {
-  // TODO: Update to use `emptied` event instead. See #1277.
-
-  // reset the error state
-  this.error(null);
-
-  // If it's already playing we want to trigger a firstplay event now.
-  // The firstplay event relies on both the play and loadstart events
-  // which can happen in any order for a new source
-  if (!this.paused()) {
-    this.trigger('firstplay');
-  } else {
-    // reset the hasStarted state
-    this.hasStarted(false);
-    this.one('play', function(){
-      this.hasStarted(true);
-    });
-  }
-};
-
-ajs.Player.prototype.hasStarted_ = false;
-
-ajs.Player.prototype.hasStarted = function(hasStarted){
-  if (hasStarted !== undefined) {
-    // only update if this is a new value
-    if (this.hasStarted_ !== hasStarted) {
-      this.hasStarted_ = hasStarted;
-      if (hasStarted) {
-        this.addClass('ajs-has-started');
-        // trigger the firstplay event if this newly has played
-        this.trigger('firstplay');
-      } else {
-        this.removeClass('ajs-has-started');
-      }
-    }
-    return this;
-  }
-  return this.hasStarted_;
-};
-
-/**
- * Fired when the player has initial duration and dimension information
- * @event loadedmetadata
- */
-ajs.Player.prototype.onLoadedMetaData;
-
-/**
- * Fired when the player has downloaded data at the current playback position
- * @event loadeddata
- */
-ajs.Player.prototype.onLoadedData;
-
-/**
- * Fired when the player has finished downloading the source data
- * @event loadedalldata
- */
-ajs.Player.prototype.onLoadedAllData;
-
-/**
- * Fired whenever the media begins or resumes playback
- * @event play
- */
-ajs.Player.prototype.onPlay = function(){
-  ajs.removeClass(this.el_, 'ajs-paused');
-  ajs.addClass(this.el_, 'ajs-playing');
-};
-
-/**
- * Fired the first time a audio is played
- *
- * Not part of the HLS spec, and we're not sure if this is the best
- * implementation yet, so use sparingly. If you don't have a reason to
- * prevent playback, use `myPlayer.one('play');` instead.
- *
- * @event firstplay
- */
-ajs.Player.prototype.onFirstPlay = function(){
-    //If the first starttime attribute is specified
-    //then we will start at the given offset in seconds
-    if(this.options_['starttime']){
-      this.currentTime(this.options_['starttime']);
-    }
-
-    this.addClass('ajs-has-started');
-};
-
-/**
- * Fired whenever the media has been paused
- * @event pause
- */
-ajs.Player.prototype.onPause = function(){
-  ajs.removeClass(this.el_, 'ajs-playing');
-  ajs.addClass(this.el_, 'ajs-paused');
-};
-
-/**
- * Fired when the current playback position has changed
- *
- * During playback this is fired every 15-250 milliseconds, depnding on the
- * playback technology in use.
- * @event timeupdate
- */
-ajs.Player.prototype.onTimeUpdate;
-
-/**
- * Fired while the user agent is downloading media data
- * @event progress
- */
-ajs.Player.prototype.onProgress = function(){
-  // Add custom event for when source is finished downloading.
-  if (this.bufferedPercent() == 1) {
-    this.trigger('loadedalldata');
-  }
-};
-
-/**
- * Fired when the end of the media resource is reached (currentTime == duration)
- * @event ended
- */
-ajs.Player.prototype.onEnded = function(){
-  if (this.options_['loop']) {
-    this.currentTime(0);
-    this.play();
-  }
-};
-
-/**
- * Fired when the duration of the media resource is first known or changed
- * @event durationchange
- */
-ajs.Player.prototype.onDurationChange = function(){
-  // Allows for cacheing value instead of asking player each time.
-  // We need to get the techGet response and check for a value so we don't
-  // accidentally cause the stack to blow up.
-  var duration = this.techGet('duration');
-  if (duration) {
-    if (duration < 0) {
-      duration = Infinity;
-    }
-    this.duration(duration);
-    // Determine if the stream is live and propagate styles down to UI.
-    if (duration === Infinity) {
-      this.addClass('ajs-live');
-    } else {
-      this.removeClass('ajs-live');
-    }
-  }
-};
-
-/**
- * Fired when the volume changes
- * @event volumechange
- */
-ajs.Player.prototype.onVolumeChange;
-
-
-// /* Player API
-// ================================================================================ */
-
-/**
- * Object for cached values.
- * @private
- */
-ajs.Player.prototype.cache_;
-
-ajs.Player.prototype.getCache = function(){
-  return this.cache_;
-};
-
-// Pass values to the playback tech
-ajs.Player.prototype.techCall = function(method, arg){
-  // If it's not ready yet, call method when it is
-  if (this.tech && !this.tech.isReady_) {
-    this.tech.ready(function(){
-      this[method](arg);
-    });
-
-  // Otherwise call method now
-  } else {
-    try {
-      this.tech[method](arg);
-    } catch(e) {
-      ajs.log(e);
-      throw e;
-    }
-  }
-};
-
-// Get calls can't wait for the tech, and sometimes don't need to.
-ajs.Player.prototype.techGet = function(method){
-  if (this.tech && this.tech.isReady_) {
-
-    // Flash likes to die and reload when you hide or reposition it.
-    // In these cases the object methods go away and we get errors.
-    // When that happens we'll catch the errors and inform tech that it's not ready any more.
-    try {
-      return this.tech[method]();
-    } catch(e) {
-      // When building additional tech libs, an expected method may not be defined yet
-      if (this.tech[method] === undefined) {
-        ajs.log('audio.js: ' + method + ' method not defined for '+this.techName+' playback technology.', e);
-      } else {
-        // When a method isn't available on the object it throws a TypeError
-        if (e.name == 'TypeError') {
-          ajs.log('audio.js: ' + method + ' unavailable on '+this.techName+' playback technology element.', e);
-          this.tech.isReady_ = false;
-        } else {
-          ajs.log(e);
-        }
-      }
-      throw e;
-    }
-  }
-
-  return;
-};
-
-/**
- * start media playback
- *
- *     myPlayer.play();
- *
- * @return {ajs.Player} self
- */
-ajs.Player.prototype.play = function(){
-  this.techCall('play');
-  return this;
-};
-
-/**
- * Pause the audio playback
- *
- *     myPlayer.pause();
- *
- * @return {ajs.Player} self
- */
-ajs.Player.prototype.pause = function(){
-  this.techCall('pause');
-  return this;
-};
-
-/**
- * Check if the player is paused
- *
- *     var isPaused = myPlayer.paused();
- *     var isPlaying = !myPlayer.paused();
- *
- * @return {Boolean} false if the media is currently playing, or true otherwise
- */
-ajs.Player.prototype.paused = function(){
-  // The initial state of paused should be true (in Safari it's actually false)
-  return (this.techGet('paused') === false) ? false : true;
-};
-
-/**
- * Get or set the current time (in seconds)
- *
- *     // get
- *     var whereYouAt = myPlayer.currentTime();
- *
- *     // set
- *     myPlayer.currentTime(120); // 2 minutes into the audio
- *
- * @param  {Number|String=} seconds The time to seek to
- * @return {Number}        The time in seconds, when not setting
- * @return {ajs.Player}    self, when the current time is set
- */
-ajs.Player.prototype.currentTime = function(seconds){
-  if (seconds !== undefined) {
-
-    this.techCall('setCurrentTime', seconds);
-
-    // improve the accuracy of manual timeupdates
-    if (this.manualTimeUpdates) { this.trigger('timeupdate'); }
-
-    return this;
-  }
-
-  // cache last currentTime and return. default to 0 seconds
-  //
-  // Caching the currentTime is meant to prevent a massive amount of reads on the tech's
-  // currentTime when scrubbing, but may not proaude much performace benefit afterall.
-  // Should be tested. Also something has to read the actual current time or the cache will
-  // never get updated.
-  return this.cache_.currentTime = (this.techGet('currentTime') || 0);
-};
-
-/**
- * Get the length in time of the audio in seconds
- *
- *     var lengthOfaudio = myPlayer.duration();
- *
- * **NOTE**: The audio must have started loading before the duration can be
- * known, and in the case of Flash, may not be known until the audio starts
- * playing.
- *
- * @return {Number} The duration of the audio in seconds
- */
-ajs.Player.prototype.duration = function(seconds){
-  if (seconds !== undefined) {
-
-    // cache the last set value for optimiized scrubbing (esp. Flash)
-    this.cache_.duration = parseFloat(seconds);
-
-    return this;
-  }
-
-  if (this.cache_.duration === undefined) {
-    this.onDurationChange();
-  }
-
-  return this.cache_.duration || 0;
-};
-
-// Calculates how much time is left. Not in spec, but useful.
-ajs.Player.prototype.remainingTime = function(){
-  return this.duration() - this.currentTime();
-};
-
-// http://dev.w3.org/html5/spec/audio.html#dom-media-buffered
-// Buffered returns a timerange object.
-// Kind of like an array of portions of the audio that have been downloaded.
-// So far no browsers return more than one range (portion)
-
-/**
- * Get a TimeRange object with the times of the audio that have been downloaded
- *
- * If you just want the percent of the audio that's been downloaded,
- * use bufferedPercent.
- *
- *     // Number of different ranges of time have been buffered. Usually 1.
- *     numberOfRanges = bufferedTimeRange.length,
- *
- *     // Time in seconds when the first range starts. Usually 0.
- *     firstRangeStart = bufferedTimeRange.start(0),
- *
- *     // Time in seconds when the first range ends
- *     firstRangeEnd = bufferedTimeRange.end(0),
- *
- *     // Length in seconds of the first time range
- *     firstRangeLength = firstRangeEnd - firstRangeStart;
- *
- * @return {Object} A mock TimeRange object (following HTML spec)
- */
-ajs.Player.prototype.buffered = function(){
-  var buffered = this.techGet('buffered'),
-      start = 0,
-      buflast = buffered.length - 1,
-      // Default end to 0 and store in values
-      end = this.cache_.bufferEnd = this.cache_.bufferEnd || 0;
-
-  if (buffered && buflast >= 0 && buffered.end(buflast) !== end) {
-    end = buffered.end(buflast);
-    // Storing values allows them be overridden by setBufferedFromProgress
-    this.cache_.bufferEnd = end;
-  }
-
-  return ajs.createTimeRange(start, end);
-};
-
-/**
- * Get the percent (as a decimal) of the audio that's been downloaded
- *
- *     var howMuchIsDownloaded = myPlayer.bufferedPercent();
- *
- * 0 means none, 1 means all.
- * (This method isn't in the HTML5 spec, but it's very convenient)
- *
- * @return {Number} A decimal between 0 and 1 representing the percent
- */
-ajs.Player.prototype.bufferedPercent = function(){
-  return (this.duration()) ? this.buffered().end(0) / this.duration() : 0;
-};
-
-/**
- * Get or set the current volume of the media
- *
- *     // get
- *     var howLoudIsIt = myPlayer.volume();
- *
- *     // set
- *     myPlayer.volume(0.5); // Set volume to half
- *
- * 0 is off (muted), 1.0 is all the way up, 0.5 is half way.
- *
- * @param  {Number} percentAsDecimal The new volume as a decimal percent
- * @return {Number}                  The current volume, when getting
- * @return {ajs.Player}              self, when setting
- */
-ajs.Player.prototype.volume = function(percentAsDecimal){
-  var vol;
-
-  if (percentAsDecimal !== undefined) {
-    vol = Math.max(0, Math.min(1, parseFloat(percentAsDecimal))); // Force value to between 0 and 1
-    this.cache_.volume = vol;
-    this.techCall('setVolume', vol);
-    ajs.setLocalStorage('volume', vol);
-    return this;
-  }
-
-  // Default to 1 when returning current volume.
-  vol = parseFloat(this.techGet('volume'));
-  return (isNaN(vol)) ? 1 : vol;
-};
-
-
-/**
- * Get the current muted state, or turn mute on or off
- *
- *     // get
- *     var isVolumeMuted = myPlayer.muted();
- *
- *     // set
- *     myPlayer.muted(true); // mute the volume
- *
- * @param  {Boolean=} muted True to mute, false to unmute
- * @return {Boolean} True if mute is on, false if not, when getting
- * @return {ajs.Player} self, when setting mute
- */
-ajs.Player.prototype.muted = function(muted){
-  if (muted !== undefined) {
-    this.techCall('setMuted', muted);
-    return this;
-  }
-  return this.techGet('muted') || false; // Default to false
-};
-
-
-
-ajs.Player.prototype.selectSource = function(sources){
-
-  // Loop through each playback technology in the options order
-  for (var i=0,j=this.options_['techOrder'];i<j.length;i++) {
-    var techName = ajs.capitalize(j[i]),
-        tech = window['audiojs'][techName];
-
-    // Check if the current tech is defined before continuing
-    if (!tech) {
-      ajs.log.error('The "' + techName + '" tech is undefined. Skipped browser support check for that tech.');
-      continue;
-    }
-
-    // Check if the browser supports this technology
-    if (tech.isSupported()) {
-      // Loop through each source object
-      for (var a=0,b=sources;a<b.length;a++) {
-        var source = b[a];
-
-        // Check if source can be played with this technology
-        if (tech['canPlaySource'](source)) {
-          return { source: source, tech: techName };
-        }
-      }
-    }
-  }
-
-  return false;
-};
-
-/**
- * The source function updates the audio source
- *
- * There are three types of variables you can pass as the argument.
- *
- * **URL String**: A URL to the the audio file. Use this method if you are sure
- * the current playback technology (HTML5/Flash) can support the source you
- * proaude. Currently only mp3 files can be used in both HTML5 and Flash.
- *
- *     myPlayer.src("http://www.example.com/path/to/audio.mp3");
- *
- * **Source Object (or element):** A javascript object containing information
- * about the source file. Use this method if you want the player to determine if
- * it can support the file using the type information.
- *
- *     myPlayer.src({ type: "audio/mp3", src: "http://www.example.com/path/to/audio.mp3" });
- *
- * **Array of Source Objects:** To proaude multiple versions of the source so
- * that it can be played using HTML5 across browsers you can use an array of
- * source objects. audio.js will detect which version is supported and load that
- * file.
- *
- *     myPlayer.src([
- *       { type: "audio/mp3", src: "http://www.example.com/path/to/audio.mp3" },
- *       { type: "audio/webm", src: "http://www.example.com/path/to/audio.webm" },
- *       { type: "audio/ogg", src: "http://www.example.com/path/to/audio.ogv" }
- *     ]);
- *
- * @param  {String|Object|Array=} source The source URL, object, or array of sources
- * @return {String} The current audio source when getting
- * @return {String} The player when setting
- */
-ajs.Player.prototype.src = function(source){
-  if (source === undefined) {
-    return this.techGet('src');
-  }
-
-  // Case: Array of source objects to choose from and pick the best to play
-  if (ajs.obj.isArray(source)) {
-
-    var sourceTech = this.selectSource(source),
-        techName;
-
-    if (sourceTech) {
-        source = sourceTech.source;
-        techName = sourceTech.tech;
-
-      // If this technology is already loaded, set source
-      if (techName == this.techName) {
-        this.src(source); // Passing the source object
-      // Otherwise load this technology with chosen source
-      } else {
-        this.loadTech(techName, source);
-      }
-    } else {
-      // this.el_.appendChild(ajs.createEl('p', {
-      //   innerHTML: this.options()['notSupportedMessage']
-      // }));
-      this.error({ code: 4, message: this.options()['notSupportedMessage'] });
-      this.triggerReady(); // we could not find an appropriate tech, but let's still notify the delegate that this is it
-    }
-
-  // Case: Source object { src: '', type: '' ... }
-  } else if (source instanceof Object) {
-
-    if (window['audiojs'][this.techName]['canPlaySource'](source)) {
-      this.src(source.src);
-    } else {
-      // Send through tech loop to check for a compatible technology.
-      this.src([source]);
-    }
-
-  // Case: URL String (http://myaudio...)
-  } else {
-    // Cache for getting last set source
-    this.cache_.src = source;
-
-    if (!this.isReady_) {
-      this.ready(function(){
-        this.src(source);
-      });
-    } else {
-      this.techCall('src', source);
-      if (this.options_['preload'] == 'auto') {
-        this.load();
-      }
-      if (this.options_['autoplay']) {
-        this.play();
-      }
-    }
-  }
-
-  return this;
-};
-
-// Begin loading the src data
-// http://dev.w3.org/html5/spec/audio.html#dom-media-load
-ajs.Player.prototype.load = function(){
-  this.techCall('load');
-  return this;
-};
-
-// http://dev.w3.org/html5/spec/audio.html#dom-media-currentsrc
-ajs.Player.prototype.currentSrc = function(){
-  return this.techGet('currentSrc') || this.cache_.src || '';
-};
-
-// Attributes/Options
-ajs.Player.prototype.preload = function(value){
-  if (value !== undefined) {
-    this.techCall('setPreload', value);
-    this.options_['preload'] = value;
-    return this;
-  }
-  return this.techGet('preload');
-};
-ajs.Player.prototype.autoplay = function(value){
-  if (value !== undefined) {
-    this.techCall('setAutoplay', value);
-    this.options_['autoplay'] = value;
-    return this;
-  }
-  return this.techGet('autoplay', value);
-};
-ajs.Player.prototype.loop = function(value){
-  if (value !== undefined) {
-    this.techCall('setLoop', value);
-    this.options_['loop'] = value;
-    return this;
-  }
-  return this.techGet('loop');
-};
-
-
-
-/**
- * Whether or not the controls are showing
- * @type {Boolean}
- * @private
- */
-ajs.Player.prototype.controls_;
-
-/**
- * Get or set whether or not the controls are showing.
- * @param  {Boolean} controls Set controls to showing or not
- * @return {Boolean}    Controls are showing
- */
-ajs.Player.prototype.controls = function(bool){
-  if (bool !== undefined) {
-    bool = !!bool; // force boolean
-    // Don't trigger a change event unless it actually changed
-    if (this.controls_ !== bool) {
-      this.controls_ = bool;
-      if (bool) {
-        this.removeClass('ajs-controls-disabled');
-        this.addClass('ajs-controls-enabled');
-        this.trigger('controlsenabled');
-      } else {
-        this.removeClass('ajs-controls-enabled');
-        this.addClass('ajs-controls-disabled');
-        this.trigger('controlsdisabled');
-      }
-    }
-    return this;
-  }
-  return this.controls_;
-};
-
-ajs.Player.prototype.usingNativeControls_;
-
-/**
- * Toggle native controls on/off. Native controls are the controls built into
- * devices (e.g. default iPhone controls), Flash, or other techs
- * (e.g. Vimeo Controls)
- *
- * **This should only be set by the current tech, because only the tech knows
- * if it can support native controls**
- *
- * @param  {Boolean} bool    True signals that native controls are on
- * @return {ajs.Player}      Returns the player
- * @private
- */
-ajs.Player.prototype.usingNativeControls = function(bool){
-  if (bool !== undefined) {
-    bool = !!bool; // force boolean
-    // Don't trigger a change event unless it actually changed
-    if (this.usingNativeControls_ !== bool) {
-      this.usingNativeControls_ = bool;
-      if (bool) {
-        this.addClass('ajs-using-native-controls');
-
-        /**
-         * player is using the native device controls
-         *
-         * @event usingnativecontrols
-         * @memberof ajs.Player
-         * @instance
-         * @private
-         */
-        this.trigger('usingnativecontrols');
-      } else {
-        this.removeClass('ajs-using-native-controls');
-
-        /**
-         * player is using the custom HTML controls
-         *
-         * @event usingcustomcontrols
-         * @memberof ajs.Player
-         * @instance
-         * @private
-         */
-        this.trigger('usingcustomcontrols');
-      }
-    }
-    return this;
-  }
-  return this.usingNativeControls_;
-};
-
-/**
- * Store the current media error
- * @type {Object}
- * @private
- */
-ajs.Player.prototype.error_ = null;
-
-/**
- * Set or get the current MediaError
- * @param  {*} err A MediaError or a String/Number to be turned into a MediaError
- * @return {ajs.MediaError|null}     when getting
- * @return {ajs.Player}              when setting
- */
-ajs.Player.prototype.error = function(err){
-  if (err === undefined) {
-    return this.error_;
-  }
-
-  // restoring to default
-  if (err === null) {
-    this.error_ = err;
-    this.removeClass('ajs-error');
-    return this;
-  }
-
-  // error instance
-  if (err instanceof ajs.MediaError) {
-    this.error_ = err;
-  } else {
-    this.error_ = new ajs.MediaError(err);
-  }
-
-  // fire an error event on the player
-  this.trigger('error');
-
-  // add the ajs-error classname to the player
-  this.addClass('ajs-error');
-
-  // log the name of the error type and any message
-  // ie8 just logs "[object object]" if you just log the error object
-  ajs.log.error('(CODE:'+this.error_.code+' '+ajs.MediaError.errorTypes[this.error_.code]+')', this.error_.message, this.error_);
-
-  return this;
-};
-
-ajs.Player.prototype.ended = function(){ return this.techGet('ended'); };
-ajs.Player.prototype.seeking = function(){ return this.techGet('seeking'); };
-
-// When the player is first initialized, trigger activity so components
-// like the control bar show themselves if needed
-ajs.Player.prototype.userActivity_ = true;
-ajs.Player.prototype.reportUserActivity = function(event){
-  this.userActivity_ = true;
-};
-
-ajs.Player.prototype.userActive_ = true;
-ajs.Player.prototype.userActive = function(bool){
-  if (bool !== undefined) {
-    bool = !!bool;
-    if (bool !== this.userActive_) {
-      this.userActive_ = bool;
-      if (bool) {
-        // If the user was inactive and is now active we want to reset the
-        // inactivity timer
-        this.userActivity_ = true;
-        this.removeClass('ajs-user-inactive');
-        this.addClass('ajs-user-active');
-        this.trigger('useractive');
-      } else {
-        // We're switching the state to inactive manually, so erase any other
-        // activity
-        this.userActivity_ = false;
-
-        // Chrome/Safari/IE have bugs where when you change the cursor it can
-        // trigger a mousemove event. This causes an issue when you're hiding
-        // the cursor when the user is inactive, and a mousemove signals user
-        // activity. Making it impossible to go into inactive mode. Specifically
-        // this happens in fullscreen when we really need to hide the cursor.
-        //
-        // When this gets resolved in ALL browsers it can be removed
-        // https://code.google.com/p/chromium/issues/detail?id=103041
-        if(this.tech) {
-          this.tech.one('mousemove', function(e){
-            e.stopPropagation();
-            e.preventDefault();
-          });
-        }
-
-        this.removeClass('ajs-user-active');
-        this.addClass('ajs-user-inactive');
-        this.trigger('userinactive');
-      }
-    }
-    return this;
-  }
-  return this.userActive_;
-};
-
-ajs.Player.prototype.listenForUserActivity = function(){
-  var onActivity, onMouseMove, onMouseDown, mouseInProgress, onMouseUp,
-      activityCheck, inactivityTimeout, lastMoveX, lastMoveY;
-
-  onActivity = ajs.bind(this, this.reportUserActivity);
-
-  onMouseMove = function(e) {
-    // #1068 - Prevent mousemove spamming
-    // Chrome Bug: https://code.google.com/p/chromium/issues/detail?id=366970
-    if(e.screenX != lastMoveX || e.screenY != lastMoveY) {
-      lastMoveX = e.screenX;
-      lastMoveY = e.screenY;
-      onActivity();
-    }
-  };
-
-  onMouseDown = function() {
-    onActivity();
-    // For as long as the they are touching the device or have their mouse down,
-    // we consider them active even if they're not moving their finger or mouse.
-    // So we want to continue to update that they are active
-    clearInterval(mouseInProgress);
-    // Setting userActivity=true now and setting the interval to the same time
-    // as the activityCheck interval (250) should ensure we never miss the
-    // next activityCheck
-    mouseInProgress = setInterval(onActivity, 250);
-  };
-
-  onMouseUp = function(event) {
-    onActivity();
-    // Stop the interval that maintains activity if the mouse/touch is down
-    clearInterval(mouseInProgress);
-  };
-
-  // Any mouse movement will be considered user activity
-  this.on('mousedown', onMouseDown);
-  this.on('mousemove', onMouseMove);
-  this.on('mouseup', onMouseUp);
-
-  // Listen for keyboard navigation
-  // Shouldn't need to use inProgress interval because of key repeat
-  this.on('keydown', onActivity);
-  this.on('keyup', onActivity);
-
-  // Run an interval every 250 milliseconds instead of stuffing everything into
-  // the mousemove/touchmove function itself, to prevent performance degradation.
-  // `this.reportUserActivity` simply sets this.userActivity_ to true, which
-  // then gets picked up by this loop
-  // http://ejohn.org/blog/learning-from-twitter/
-  activityCheck = setInterval(ajs.bind(this, function() {
-    // Check to see if mouse/touch activity has happened
-    if (this.userActivity_) {
-      // Reset the activity tracker
-      this.userActivity_ = false;
-
-      // If the user state was inactive, set the state to active
-      this.userActive(true);
-
-      // Clear any existing inactivity timeout to start the timer over
-      clearTimeout(inactivityTimeout);
-
-      // In X seconds, if no more activity has occurred the user will be
-      // considered inactive
-      inactivityTimeout = setTimeout(ajs.bind(this, function() {
-        // Protect against the case where the inactivityTimeout can trigger just
-        // before the next user activity is picked up by the activityCheck loop
-        // causing a flicker
-        if (!this.userActivity_) {
-          this.userActive(false);
-        }
-      }), 2000);
-    }
-  }), 250);
-
-  // Clean up the intervals when we kill the player
-  this.on('dispose', function(){
-    clearInterval(activityCheck);
-    clearTimeout(inactivityTimeout);
-  });
-};
-
-// Methods to add support for
-// networkState: function(){ return this.techCall('networkState'); },
-// readyState: function(){ return this.techCall('readyState'); },
-// initialTime: function(){ return this.techCall('initialTime'); },
-// startOffsetTime: function(){ return this.techCall('startOffsetTime'); },
-// played: function(){ return this.techCall('played'); },
-// seekable: function(){ return this.techCall('seekable'); },
-// audioWidth: function(){ return this.techCall('audioWidth'); },
-// audioHeight: function(){ return this.techCall('audioHeight'); },
-// defaultPlaybackRate: function(){ return this.techCall('defaultPlaybackRate'); },
-// mediaGroup: function(){ return this.techCall('mediaGroup'); },
-// controller: function(){ return this.techCall('controller'); },
-// defaultMuted: function(){ return this.techCall('defaultMuted'); }
-
-// TODO
-// currentSrcList: the array of sources including other formats and bitrates
-// playList: array of source lists in order of playback
-/**
- * Container of main controls
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @class
- * @constructor
- * @extends ajs.Component
- */
-ajs.ControlBar = ajs.Component.extend();
-
-ajs.ControlBar.prototype.options_ = {
-  loadEvent: 'play',
-  children: {
-    'playToggle': {},
-    'currentTimeDisplay': {},
-    'timedivider': {},
-    'durationDisplay': {},
-    'remainingTimeDisplay': {},
-    'progressControl': {},
-    'volumeControl': {},
-    'muteToggle': {}
-  }
-};
-
-ajs.ControlBar.prototype.createEl = function(){
-  return ajs.createEl('div', {
-    className: 'ajs-control-bar'
-  });
-};
-
-/**
- * Button to toggle between play and pause
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @class
- * @constructor
- */
-ajs.PlayToggle = ajs.Button.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Button.call(this, player, options);
-
-    player.on('play', ajs.bind(this, this.onPlay));
-    player.on('pause', ajs.bind(this, this.onPause));
-  }
-});
-
-ajs.PlayToggle.prototype.buttonText = 'Play';
-
-ajs.PlayToggle.prototype.buildCSSClass = function(){
-  return 'ajs-play-control ' + ajs.Button.prototype.buildCSSClass.call(this);
-};
-
-// OnClick - Toggle between play and pause
-ajs.PlayToggle.prototype.onClick = function(){
-  if (this.player_.paused()) {
-    this.player_.play();
-  } else {
-    this.player_.pause();
-  }
-};
-
-  // OnPlay - Add the ajs-playing class to the element so it can change appearance
-ajs.PlayToggle.prototype.onPlay = function(){
-  ajs.removeClass(this.el_, 'ajs-paused');
-  ajs.addClass(this.el_, 'ajs-playing');
-  this.el_.children[0].children[0].innerHTML = 'Pause'; // change the button text to "Pause"
-};
-
-  // OnPause - Add the ajs-paused class to the element so it can change appearance
-ajs.PlayToggle.prototype.onPause = function(){
-  ajs.removeClass(this.el_, 'ajs-playing');
-  ajs.addClass(this.el_, 'ajs-paused');
-  this.el_.children[0].children[0].innerHTML = 'Play'; // change the button text to "Play"
-};
-/**
- * Displays the current time
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.CurrentTimeDisplay = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    player.on('timeupdate', ajs.bind(this, this.updateContent));
-  }
-});
-
-ajs.CurrentTimeDisplay.prototype.createEl = function(){
-  var el = ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-current-time ajs-time-controls ajs-control'
-  });
-
-  this.contentEl_ = ajs.createEl('div', {
-    className: 'ajs-current-time-display',
-    innerHTML: '<span class="ajs-control-text">Current Time </span>' + '0:00', // label the current time for screen reader users
-    'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
-  });
-
-  el.appendChild(this.contentEl_);
-  return el;
-};
-
-ajs.CurrentTimeDisplay.prototype.updateContent = function(){
-  // Allows for smooth scrubbing, when player can't keep up.
-  var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
-  this.contentEl_.innerHTML = '<span class="ajs-control-text">Current Time </span>' + ajs.formatTime(time, this.player_.duration());
-};
-
-/**
- * Displays the duration
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.DurationDisplay = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    // this might need to be changed to 'durationchange' instead of 'timeupdate' eventually,
-    // however the durationchange event fires before this.player_.duration() is set,
-    // so the value cannot be written out using this method.
-    // Once the order of durationchange and this.player_.duration() being set is figured out,
-    // this can be updated.
-    player.on('timeupdate', ajs.bind(this, this.updateContent));
-  }
-});
-
-ajs.DurationDisplay.prototype.createEl = function(){
-  var el = ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-duration ajs-time-controls ajs-control'
-  });
-
-  this.contentEl_ = ajs.createEl('div', {
-    className: 'ajs-duration-display',
-    innerHTML: '<span class="ajs-control-text">Duration Time </span>' + '0:00', // label the duration time for screen reader users
-    'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
-  });
-
-  el.appendChild(this.contentEl_);
-  return el;
-};
-
-ajs.DurationDisplay.prototype.updateContent = function(){
-  var duration = this.player_.duration();
-  if (duration) {
-      this.contentEl_.innerHTML = '<span class="ajs-control-text">Duration Time </span>' + ajs.formatTime(duration); // label the duration time for screen reader users
-  }
-};
-
-/**
- * The separator between the current time and duration
- *
- * Can be hidden if it's not needed in the design.
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.Timedivider = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-  }
-});
-
-ajs.Timedivider.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-time-divider',
-    innerHTML: '<div><span>/</span></div>'
-  });
-};
-
-/**
- * Displays the time left in the audio
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.RemainingTimeDisplay = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    player.on('timeupdate', ajs.bind(this, this.updateContent));
-  }
-});
-
-ajs.RemainingTimeDisplay.prototype.createEl = function(){
-  var el = ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-remaining-time ajs-time-controls ajs-control'
-  });
-
-  this.contentEl_ = ajs.createEl('div', {
-    className: 'ajs-remaining-time-display',
-    innerHTML: '<span class="ajs-control-text">Remaining Time </span>' + '-0:00', // label the remaining time for screen reader users
-    'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
-  });
-
-  el.appendChild(this.contentEl_);
-  return el;
-};
-
-ajs.RemainingTimeDisplay.prototype.updateContent = function(){
-  if (this.player_.duration()) {
-    this.contentEl_.innerHTML = '<span class="ajs-control-text">Remaining Time </span>' + '-'+ ajs.formatTime(this.player_.remainingTime());
-  }
-
-  // Allows for smooth scrubbing, when player can't keep up.
-  // var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
-  // this.contentEl_.innerHTML = ajs.formatTime(time, this.player_.duration());
-};
-
-/**
- * The Progress Control component contains the seek bar, load progress,
- * and play progress
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.ProgressControl = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-  }
-});
-
-ajs.ProgressControl.prototype.options_ = {
-  children: {
-    'seekBar': {}
-  }
-};
-
-ajs.ProgressControl.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-progress-control ajs-control'
-  });
-};
-
-/**
- * Seek Bar and holder for the progress bars
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.SeekBar = ajs.Slider.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Slider.call(this, player, options);
-    player.on('timeupdate', ajs.bind(this, this.updateARIAAttributes));
-    player.ready(ajs.bind(this, this.updateARIAAttributes));
-  }
-});
-
-ajs.SeekBar.prototype.options_ = {
-  children: {
-    'loadProgressBar': {},
-    'playProgressBar': {},
-    'seekHandle': {}
-  },
-  'barName': 'playProgressBar',
-  'handleName': 'seekHandle'
-};
-
-ajs.SeekBar.prototype.playerEvent = 'timeupdate';
-
-ajs.SeekBar.prototype.createEl = function(){
-  return ajs.Slider.prototype.createEl.call(this, 'div', {
-    className: 'ajs-progress-holder',
-    'aria-label': 'audio progress bar'
-  });
-};
-
-ajs.SeekBar.prototype.updateARIAAttributes = function(){
-    // Allows for smooth scrubbing, when player can't keep up.
-    var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
-    this.el_.setAttribute('aria-valuenow',ajs.round(this.getPercent()*100, 2)); // machine readable value of progress bar (percentage complete)
-    this.el_.setAttribute('aria-valuetext',ajs.formatTime(time, this.player_.duration())); // human readable value of progress bar (time complete)
-};
-
-ajs.SeekBar.prototype.getPercent = function(){
-  return this.player_.currentTime() / this.player_.duration();
-};
-
-ajs.SeekBar.prototype.onMouseDown = function(event){
-  ajs.Slider.prototype.onMouseDown.call(this, event);
-
-  this.player_.scrubbing = true;
-
-  this.audioWasPlaying = !this.player_.paused();
-  this.player_.pause();
-};
-
-ajs.SeekBar.prototype.onMouseMove = function(event){
-  var newTime = this.calculateDistance(event) * this.player_.duration();
-
-  // Don't let audio end while scrubbing.
-  if (newTime == this.player_.duration()) { newTime = newTime - 0.1; }
-
-  // Set new time (tell player to seek to new time)
-  this.player_.currentTime(newTime);
-};
-
-ajs.SeekBar.prototype.onMouseUp = function(event){
-  ajs.Slider.prototype.onMouseUp.call(this, event);
-
-  this.player_.scrubbing = false;
-  if (this.audioWasPlaying) {
-    this.player_.play();
-  }
-};
-
-ajs.SeekBar.prototype.stepForward = function(){
-  this.player_.currentTime(this.player_.currentTime() + 5); // more quickly fast forward for keyboard-only users
-};
-
-ajs.SeekBar.prototype.stepBack = function(){
-  this.player_.currentTime(this.player_.currentTime() - 5); // more quickly rewind for keyboard-only users
-};
-
-
-/**
- * Shows load progress
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.LoadProgressBar = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-    player.on('progress', ajs.bind(this, this.update));
-  }
-});
-
-ajs.LoadProgressBar.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-load-progress',
-    innerHTML: '<span class="ajs-control-text">Loaded: 0%</span>'
-  });
-};
-
-ajs.LoadProgressBar.prototype.update = function(){
-  if (this.el_.style) { this.el_.style.width = ajs.round(this.player_.bufferedPercent() * 100, 2) + '%'; }
-};
-
-
-/**
- * Shows play progress
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.PlayProgressBar = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-  }
-});
-
-ajs.PlayProgressBar.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-play-progress',
-    innerHTML: '<span class="ajs-control-text">Progress: 0%</span>'
-  });
-};
-
-/**
- * The Seek Handle shows the current position of the playhead during playback,
- * and can be dragged to adjust the playhead.
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.SeekHandle = ajs.SliderHandle.extend({
-  init: function(player, options) {
-    ajs.SliderHandle.call(this, player, options);
-    player.on('timeupdate', ajs.bind(this, this.updateContent));
-  }
-});
-
-/**
- * The default value for the handle content, which may be read by screen readers
- *
- * @type {String}
- * @private
- */
-ajs.SeekHandle.prototype.defaultValue = '00:00';
-
-/** @inheritDoc */
-ajs.SeekHandle.prototype.createEl = function() {
-  return ajs.SliderHandle.prototype.createEl.call(this, 'div', {
-    className: 'ajs-seek-handle',
-    'aria-live': 'off'
-  });
-};
-
-ajs.SeekHandle.prototype.updateContent = function() {
-  var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
-  this.el_.innerHTML = '<span class="ajs-control-text">' + ajs.formatTime(time, this.player_.duration()) + '</span>';
-};
-/**
- * The component for controlling the volume level
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.VolumeControl = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    // hide volume controls when they're not supported by the current tech
-    if (player.tech && player.tech.features && player.tech.features['volumeControl'] === false) {
-      this.addClass('ajs-hidden');
-    }
-    player.on('loadstart', ajs.bind(this, function(){
-      if (player.tech.features && player.tech.features['volumeControl'] === false) {
-        this.addClass('ajs-hidden');
-      } else {
-        this.removeClass('ajs-hidden');
-      }
-    }));
-  }
-});
-
-ajs.VolumeControl.prototype.options_ = {
-  children: {
-    'volumeBar': {}
-  }
-};
-
-ajs.VolumeControl.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-volume-control ajs-control'
-  });
-};
-
-/**
- * The bar that contains the volume level and can be clicked on to adjust the level
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.VolumeBar = ajs.Slider.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Slider.call(this, player, options);
-    player.on('volumechange', ajs.bind(this, this.updateARIAAttributes));
-    player.ready(ajs.bind(this, this.updateARIAAttributes));
-  }
-});
-
-ajs.VolumeBar.prototype.updateARIAAttributes = function(){
-  // Current value of volume bar as a percentage
-  this.el_.setAttribute('aria-valuenow',ajs.round(this.player_.volume()*100, 2));
-  this.el_.setAttribute('aria-valuetext',ajs.round(this.player_.volume()*100, 2)+'%');
-};
-
-ajs.VolumeBar.prototype.options_ = {
-  children: {
-    'volumeLevel': {},
-    'volumeHandle': {}
-  },
-  'barName': 'volumeLevel',
-  'handleName': 'volumeHandle'
-};
-
-ajs.VolumeBar.prototype.playerEvent = 'volumechange';
-
-ajs.VolumeBar.prototype.createEl = function(){
-  return ajs.Slider.prototype.createEl.call(this, 'div', {
-    className: 'ajs-volume-bar',
-    'aria-label': 'volume level'
-  });
-};
-
-ajs.VolumeBar.prototype.onMouseMove = function(event) {
-  if (this.player_.muted()) {
-    this.player_.muted(false);
-  }
-
-  this.player_.volume(this.calculateDistance(event));
-};
-
-ajs.VolumeBar.prototype.getPercent = function(){
-  if (this.player_.muted()) {
-    return 0;
-  } else {
-    return this.player_.volume();
-  }
-};
-
-ajs.VolumeBar.prototype.stepForward = function(){
-  this.player_.volume(this.player_.volume() + 0.1);
-};
-
-ajs.VolumeBar.prototype.stepBack = function(){
-  this.player_.volume(this.player_.volume() - 0.1);
-};
-
-/**
- * Shows volume level
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.VolumeLevel = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-  }
-});
-
-ajs.VolumeLevel.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-volume-level',
-    innerHTML: '<span class="ajs-control-text"></span>'
-  });
-};
-
-/**
- * The volume handle can be dragged to adjust the volume level
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
- ajs.VolumeHandle = ajs.SliderHandle.extend();
-
- ajs.VolumeHandle.prototype.defaultValue = '00:00';
-
- /** @inheritDoc */
- ajs.VolumeHandle.prototype.createEl = function(){
-   return ajs.SliderHandle.prototype.createEl.call(this, 'div', {
-     className: 'ajs-volume-handle'
-   });
- };
-/**
- * A button component for muting the audio
- *
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.MuteToggle = ajs.Button.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Button.call(this, player, options);
-
-    player.on('volumechange', ajs.bind(this, this.update));
-
-    // hide mute toggle if the current tech doesn't support volume control
-    if (player.tech && player.tech.features && player.tech.features['volumeControl'] === false) {
-      this.addClass('ajs-hidden');
-    }
-    player.on('loadstart', ajs.bind(this, function(){
-      if (player.tech.features && player.tech.features['volumeControl'] === false) {
-        this.addClass('ajs-hidden');
-      } else {
-        this.removeClass('ajs-hidden');
-      }
-    }));
-  }
-});
-
-ajs.MuteToggle.prototype.createEl = function(){
-  return ajs.Button.prototype.createEl.call(this, 'div', {
-    className: 'ajs-mute-control ajs-control',
-    innerHTML: '<div><span class="ajs-control-text">Mute</span></div>'
-  });
-};
-
-ajs.MuteToggle.prototype.onClick = function(){
-  this.player_.muted( this.player_.muted() ? false : true );
-};
-
-ajs.MuteToggle.prototype.update = function(){
-  var vol = this.player_.volume(),
-      level = 3;
-
-  if (vol === 0 || this.player_.muted()) {
-    level = 0;
-  } else if (vol < 0.33) {
-    level = 1;
-  } else if (vol < 0.67) {
-    level = 2;
-  }
-
-  // Don't rewrite the button text if the actual text doesn't change.
-  // This causes unnecessary and confusing information for screen reader users.
-  // This check is needed because this function gets called every time the volume level is changed.
-  if(this.player_.muted()){
-      if(this.el_.children[0].children[0].innerHTML!='Unmute'){
-          this.el_.children[0].children[0].innerHTML = 'Unmute'; // change the button text to "Unmute"
-      }
-  } else {
-      if(this.el_.children[0].children[0].innerHTML!='Mute'){
-          this.el_.children[0].children[0].innerHTML = 'Mute'; // change the button text to "Mute"
-      }
-  }
-
-  /* TODO improve muted icon classes */
-  for (var i = 0; i < 4; i++) {
-    ajs.removeClass(this.el_, 'ajs-vol-'+i);
-  }
-  ajs.addClass(this.el_, 'ajs-vol-'+level);
-};
-/* Loading Spinner
-================================================================================ */
-/**
- * Loading spinner for waiting events
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @class
- * @constructor
- */
-ajs.LoadingSpinner = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    player.on('canplay', ajs.bind(this, this.hide));
-    player.on('canplaythrough', ajs.bind(this, this.hide));
-    player.on('playing', ajs.bind(this, this.hide));
-    player.on('seeking', ajs.bind(this, this.show));
-
-    // in some browsers seeking does not trigger the 'playing' event,
-    // so we also need to trap 'seeked' if we are going to set a
-    // 'seeking' event
-    player.on('seeked', ajs.bind(this, this.hide));
-
-    player.on('ended', ajs.bind(this, this.hide));
-
-    // Not showing spinner on stalled any more. Browsers may stall and then not trigger any events that would remove the spinner.
-    // Checked in Chrome 16 and Safari 5.1.2. http://help.audiojs.com/discussions/problems/883-why-is-the-download-progress-showing
-    // player.on('stalled', ajs.bind(this, this.show));
-
-    player.on('waiting', ajs.bind(this, this.show));
-  }
-});
-
-ajs.LoadingSpinner.prototype.createEl = function(){
-  return ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-loading-spinner'
-  });
-};
-
-
-/**
- * Display that an error has occurred making the audio unplayable
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @constructor
- */
-ajs.ErrorDisplay = ajs.Component.extend({
-  init: function(player, options){
-    ajs.Component.call(this, player, options);
-
-    this.update();
-    player.on('error', ajs.bind(this, this.update));
-  }
-});
-
-ajs.ErrorDisplay.prototype.createEl = function(){
-  var el = ajs.Component.prototype.createEl.call(this, 'div', {
-    className: 'ajs-error-display'
-  });
-
-  this.contentEl_ = ajs.createEl('div');
-  el.appendChild(this.contentEl_);
-
-  return el;
-};
-
-ajs.ErrorDisplay.prototype.update = function(){
-  if (this.player().error()) {
-    this.contentEl_.innerHTML = this.player().error().message;
-  }
-};
-/**
- * @fileoverview Media Technology Controller - Base class for media playback
- * technology controllers like Flash and HTML5
- */
-
-/**
- * Base class for media (HTML5 audio, Flash) controllers
- * @param {ajs.Player|Object} player  Central player instance
- * @param {Object=} options Options object
- * @constructor
- */
-ajs.MediaTechController = ajs.Component.extend({
-  /** @constructor */
-  init: function(player, options, ready){
-    options = options || {};
-    // we don't want the tech to report user activity automatically.
-    // This is done manually in addControlsListeners
-    options.reportTouchActivity = false;
-    ajs.Component.call(this, player, options, ready);
-
-    this.initControlsListeners();
-  }
-});
-
-/**
- * Set up click and touch listeners for the playback element
- * On desktops, a click on the audio itself will toggle playback,
- * on a mobile device a click on the audio toggles controls.
- * (toggling controls is done by toggling the user state between active and
- * inactive)
- *
- * A tap can signal that a user has become active, or has become inactive
- * e.g. a quick tap on an iPhone movie should reveal the controls. Another
- * quick tap should hide them again (signaling the user is in an inactive
- * viewing state)
- *
- * In addition to this, we still want the user to be considered inactive after
- * a few seconds of inactivity.
- *
- * Note: the only part of iOS interaction we can't mimic with this setup
- * is a touch and hold on the audio element counting as activity in order to
- * keep the controls showing, but that shouldn't be an issue. A touch and hold on
- * any controls will still keep the user active
- */
-ajs.MediaTechController.prototype.initControlsListeners = function(){
-  var player, tech, activateControls, deactivateControls;
-
-  tech = this;
-  player = this.player();
-
-  var activateControls = function(){
-    if (player.controls() && !player.usingNativeControls()) {
-      tech.addControlsListeners();
-    }
-  };
-
-  deactivateControls = ajs.bind(tech, tech.removeControlsListeners);
-
-  // Set up event listeners once the tech is ready and has an element to apply
-  // listeners to
-  this.ready(activateControls);
-  player.on('controlsenabled', activateControls);
-  player.on('controlsdisabled', deactivateControls);
-};
-
-ajs.MediaTechController.prototype.addControlsListeners = function(){
-  var userWasActive;
-
-  // Some browsers (Chrome & IE) don't trigger a click on a flash swf, but do
-  // trigger mousedown/up.
-  // http://stackoverflow.com/questions/1444562/javascript-onclick-event-over-flash-object
-  // Any touch events are set to block the mousedown event from happening
-  this.on('mousedown', this.onClick);
-
-  // If the controls were hidden we don't want that to change without a tap event
-  // so we'll check if the controls were already showing before reporting user
-  // activity
-  this.on('touchstart', function(event) {
-    // Stop the mouse events from also happening
-    event.preventDefault();
-    userWasActive = this.player_.userActive();
-  });
-
-  this.on('touchmove', function(event) {
-    if (userWasActive){
-      this.player().reportUserActivity();
-    }
-  });
-
-  // Turn on component tap events
-  this.emitTapEvents();
-
-  // The tap listener needs to come after the touchend listener because the tap
-  // listener cancels out any reportedUserActivity when setting userActive(false)
-  this.on('tap', this.onTap);
-};
-
-/**
- * Remove the listeners used for click and tap controls. This is needed for
- * toggling to controls disabled, where a tap/touch should do nothing.
- */
-ajs.MediaTechController.prototype.removeControlsListeners = function(){
-  // We don't want to just use `this.off()` because there might be other needed
-  // listeners added by techs that extend this.
-  this.off('tap');
-  this.off('touchstart');
-  this.off('touchmove');
-  this.off('touchleave');
-  this.off('touchcancel');
-  this.off('touchend');
-  this.off('click');
-  this.off('mousedown');
-};
-
-/**
- * Handle a click on the media element. By default will play/pause the media.
- */
-ajs.MediaTechController.prototype.onClick = function(event){
-  // We're using mousedown to detect clicks thanks to Flash, but mousedown
-  // will also be triggered with right-clicks, so we need to prevent that
-  if (event.button !== 0) return;
-
-  // When controls are disabled a click should not toggle playback because
-  // the click is considered a control
-  if (this.player().controls()) {
-    if (this.player().paused()) {
-      this.player().play();
-    } else {
-      this.player().pause();
-    }
-  }
-};
-
-/**
- * Handle a tap on the media element. By default it will toggle the user
- * activity state, which hides and shows the controls.
- */
-ajs.MediaTechController.prototype.onTap = function(){
-  this.player().userActive(!this.player().userActive());
-};
-
-
-
-ajs.MediaTechController.prototype.features = {
-  'volumeControl': true,
-
-  // Optional events that we can manually mimic with timers
-  // currently not triggered by audio-js-swf
-  'progressEvents': false,
-  'timeupdateEvents': false
-};
-
-ajs.media = {};
-
-/**
- * List of default API methods for any MediaTechController
- * @type {String}
- */
-ajs.media.ApiMethods = 'play,pause,paused,currentTime,setCurrentTime,duration,buffered,volume,setVolume,muted,setMuted,width,height,src,load,currentSrc,preload,setPreload,autoplay,setAutoplay,loop,setLoop,error,networkState,readyState,seeking,initialTime,startOffsetTime,played,seekable,ended,audioWidth,audioHeight,mediaGroup,controller,controls,defaultMuted'.split(',');
-// Create placeholder methods for each that warn when a method isn't supported by the current playback technology
-
-function createMethod(methodName){
-  return function(){
-    throw new Error('The "'+methodName+'" method is not available on the playback technology\'s API');
-  };
-}
-
-for (var i = ajs.media.ApiMethods.length - 1; i >= 0; i--) {
-  var methodName = ajs.media.ApiMethods[i];
-  ajs.MediaTechController.prototype[ajs.media.ApiMethods[i]] = createMethod(methodName);
-}
-/**
- * @fileoverview HTML5 Media Controller - Wrapper for HTML5 Media API
- */
-
-/**
- * HTML5 Media Controller - Wrapper for HTML5 Media API
- * @param {ajs.Player|Object} player
- * @param {Object=} options
- * @param {Function=} ready
- * @constructor
- */
-ajs.Html5 = ajs.MediaTechController.extend({
-  /** @constructor */
-  init: function(player, options, ready){
-    // volume cannot be changed from 1 on iOS
-    this.features['volumeControl'] = ajs.Html5.canControlVolume();
-
-
-
-    // In iOS, if you move a audio element in the DOM, it breaks audio playback.
-    this.features['movingMediaElementInDOM'] = !ajs.IS_IOS;
-    ajs.MediaTechController.call(this, player, options, ready);
-    this.setupTriggers();
-
-    var source = options['source'];
-
-    // If the element source is already set, we may have missed the loadstart event, and want to trigger it.
-    // We don't want to set the source again and interrupt playback.
-    if (source && this.el_.currentSrc === source.src && this.el_.networkState > 0) {
-      player.trigger('loadstart');
-    // Otherwise set the source if one was provided.
-    } else if (source) {
-      this.el_.src = source.src;
-    }
-
-    // Determine if native controls should be used
-    // Our goal should be to get the custom controls on mobile solid everywhere
-    // so we can remove this all together. Right now this will block custom
-    // controls on touch enabled laptops like the Chrome Pixel
-    if (ajs.TOUCH_ENABLED && player.options()['nativeControlsForTouch'] !== false) {
-      this.useNativeControls();
-    }
-
-    // Chrome and Safari both have issues with autoplay.
-    // In Safari (5.1.1), when we move the audio element into the container div, autoplay doesn't work.
-    // In Chrome (15), if you have autoplay + a poster + no controls, the audio gets hidden (but audio plays)
-    // This fixes both issues. Need to wait for API, so it updates displays correctly
-    player.ready(function(){
-      if (this.tag && this.options_['autoplay'] && this.paused()) {
-                this.play();
-      }
-    });
-
-    this.triggerReady();
-  }
-});
-
-ajs.Html5.prototype.dispose = function(){
-  ajs.MediaTechController.prototype.dispose.call(this);
-};
-
-ajs.Html5.prototype.createEl = function(){
-  var player = this.player_,
-      // If possible, reuse original tag for HTML5 playback technology element
-      el = player.tag,
-      newEl,
-      clone;
-
-  // Check if this browser supports moving the element into the box.
-  // On the iPhone audio will break if you move the element,
-  // So we have to create a brand new element.
-  if (!el || this.features['movingMediaElementInDOM'] === false) {
-
-    // If the original tag is still there, clone and remove it.
-    if (el) {
-      clone = el.cloneNode(false);
-      ajs.Html5.disposeMediaElement(el);
-      el = clone;
-      player.tag = null;
-    } else {
-      el = ajs.createEl('audio', {
-        id:player.id() + '_html5_api',
-        className:'ajs-tech'
-      });
-    }
-    // associate the player with the new tag
-    el['player'] = player;
-
-    ajs.insertFirst(el, player.el());
-  }
-
-  // Update specific tag settings, in case they were overridden
-  var attrs = ['autoplay','preload','loop','muted'];
-  for (var i = attrs.length - 1; i >= 0; i--) {
-    var attr = attrs[i];
-    if (player.options_[attr] !== null) {
-      el[attr] = player.options_[attr];
-    }
-  }
-
-  return el;
-  // jenniisawesome = true;
-};
-
-// Make audio events trigger player events
-// May seem verbose here, but makes other APIs possible.
-// Triggers removed using this.off when disposed
-ajs.Html5.prototype.setupTriggers = function(){
-  for (var i = ajs.Html5.Events.length - 1; i >= 0; i--) {
-    ajs.on(this.el_, ajs.Html5.Events[i], ajs.bind(this, this.eventHandler));
-  }
-};
-
-ajs.Html5.prototype.eventHandler = function(evt){
-  // In the case of an error, set the error prop on the player
-  // and let the player handle triggering the event.
-  if (evt.type == 'error') {
-    this.player().error(this.error().code);
-
-  // in some cases we pass the event directly to the player
-  } else {
-    // No need for media events to bubble up.
-    evt.bubbles = false;
-
-    this.player().trigger(evt);
-  }
-};
-
-ajs.Html5.prototype.useNativeControls = function(){
-  var tech, player, controlsOn, controlsOff, cleanUp;
-
-  tech = this;
-  player = this.player();
-
-  // If the player controls are enabled turn on the native controls
-  tech.setControls(player.controls());
-
-  // Update the native controls when player controls state is updated
-  controlsOn = function(){
-    tech.setControls(true);
-  };
-  controlsOff = function(){
-    tech.setControls(false);
-  };
-  player.on('controlsenabled', controlsOn);
-  player.on('controlsdisabled', controlsOff);
-
-  // Clean up when not using native controls anymore
-  cleanUp = function(){
-    player.off('controlsenabled', controlsOn);
-    player.off('controlsdisabled', controlsOff);
-  };
-  tech.on('dispose', cleanUp);
-  player.on('usingcustomcontrols', cleanUp);
-
-  // Update the state of the player to using native controls
-  player.usingNativeControls(true);
-};
-
-
-ajs.Html5.prototype.play = function(){ this.el_.play(); };
-ajs.Html5.prototype.pause = function(){ this.el_.pause(); };
-ajs.Html5.prototype.paused = function(){ return this.el_.paused; };
-
-ajs.Html5.prototype.currentTime = function(){ return this.el_.currentTime; };
-ajs.Html5.prototype.setCurrentTime = function(seconds){
-  try {
-    this.el_.currentTime = seconds;
-  } catch(e) {
-    ajs.log(e, 'audio is not ready. (audio.js)');
-    // this.warning(audioJS.warnings.audioNotReady);
-  }
-};
-
-ajs.Html5.prototype.duration = function(){ return this.el_.duration || 0; };
-ajs.Html5.prototype.buffered = function(){ return this.el_.buffered; };
-
-ajs.Html5.prototype.volume = function(){ return this.el_.volume; };
-ajs.Html5.prototype.setVolume = function(percentAsDecimal){ this.el_.volume = percentAsDecimal; };
-ajs.Html5.prototype.muted = function(){ return this.el_.muted; };
-ajs.Html5.prototype.setMuted = function(muted){ this.el_.muted = muted; };
-
-ajs.Html5.prototype.width = function(){ return this.el_.offsetWidth; };
-ajs.Html5.prototype.height = function(){ return this.el_.offsetHeight; };
-
-
-ajs.Html5.prototype.src = function(src){ this.el_.src = src; };
-ajs.Html5.prototype.load = function(){ this.el_.load(); };
-ajs.Html5.prototype.currentSrc = function(){ return this.el_.currentSrc; };
-
-
-ajs.Html5.prototype.preload = function(){ return this.el_.preload; };
-ajs.Html5.prototype.setPreload = function(val){ this.el_.preload = val; };
-
-ajs.Html5.prototype.autoplay = function(){ return this.el_.autoplay; };
-ajs.Html5.prototype.setAutoplay = function(val){ this.el_.autoplay = val; };
-
-ajs.Html5.prototype.controls = function(){ return this.el_.controls; };
-ajs.Html5.prototype.setControls = function(val){ this.el_.controls = !!val; };
-
-ajs.Html5.prototype.loop = function(){ return this.el_.loop; };
-ajs.Html5.prototype.setLoop = function(val){ this.el_.loop = val; };
-
-ajs.Html5.prototype.error = function(){ return this.el_.error; };
-ajs.Html5.prototype.seeking = function(){ return this.el_.seeking; };
-ajs.Html5.prototype.ended = function(){ return this.el_.ended; };
-ajs.Html5.prototype.defaultMuted = function(){ return this.el_.defaultMuted; };
-
-
-/* HTML5 Support Testing ---------------------------------------------------- */
-
-ajs.Html5.isSupported = function(){
-  // ie9 with no Media Player is a LIAR! (#984)
-  try {
-    ajs.TEST_aud['volume'] = 0.5;
-  } catch (e) {
-    return false;
-  }
-
-  return !!ajs.TEST_aud.canPlayType;
-};
-
-ajs.Html5.canPlaySource = function(srcObj){
-  // IE9 on Windows 7 without MediaPlayer throws an error here
-  // https://github.com/audiojs/audio.js/issues/519
-  try {
-    return !!ajs.TEST_aud.canPlayType(srcObj.type);
-  } catch(e) {
-    return '';
-  }
-  // TODO: Check Type
-  // If no Type, check ext
-  // Check Media Type
-};
-
-ajs.Html5.canControlVolume = function(){
-  var volume =  ajs.TEST_aud.volume;
-  ajs.TEST_aud.volume = (volume / 2) + 0.1;
-  return volume !== ajs.TEST_aud.volume;
-};
-
-
-// HTML5 Feature detection and Device Fixes --------------------------------- //
-(function() {
-  var canPlayType,
-      mpegurlRE = /^application\/(?:x-|vnd\.apple\.)mpegurl/i,
-      mp3RE = /^audio\/mp3/i;
-
-  ajs.Html5.patchCanPlayType = function() {
-    // Android 4.0 and above can play HLS to some extent but it reports being unable to do so
-    if (ajs.ANDROID_VERSION >= 4.0) {
-      if (!canPlayType) {
-        canPlayType = ajs.TEST_aud.constructor.prototype.canPlayType;
-      }
-
-      ajs.TEST_aud.constructor.prototype.canPlayType = function(type) {
-        if (type && mpegurlRE.test(type)) {
-          return 'maybe';
-        }
-        return canPlayType.call(this, type);
-      };
-    }
-
-    // Override Android 2.2 and less canPlayType method which is broken
-    if (ajs.IS_OLD_ANDROID) {
-      if (!canPlayType) {
-        canPlayType = ajs.TEST_aud.constructor.prototype.canPlayType;
-      }
-
-      ajs.TEST_aud.constructor.prototype.canPlayType = function(type){
-        if (type && mp3RE.test(type)) {
-          return 'maybe';
-        }
-        return canPlayType.call(this, type);
-      };
-    }
-  };
-
-  ajs.Html5.unpatchCanPlayType = function() {
-    var r = ajs.TEST_aud.constructor.prototype.canPlayType;
-    ajs.TEST_aud.constructor.prototype.canPlayType = canPlayType;
-    canPlayType = null;
-    return r;
-  };
-
-  // by default, patch the audio element
-  ajs.Html5.patchCanPlayType();
-})();
-
-// List of all HTML5 events (various uses).
-ajs.Html5.Events = 'loadstart,suspend,abort,error,emptied,stalled,loadedmetadata,loadeddata,canplay,canplaythrough,playing,waiting,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
-
-ajs.Html5.disposeMediaElement = function(el){
-  if (!el) { return; }
-
-  el['player'] = null;
-
-  if (el.parentNode) {
-    el.parentNode.removeChild(el);
-  }
-
-  // remove any child track or source nodes to prevent their loading
-  while(el.hasChildNodes()) {
-    el.removeChild(el.firstChild);
-  }
-
-  // remove any src reference. not setting `src=''` because that causes a warning
-  // in firefox
-  el.removeAttribute('src');
-
-  // force the media element to update its loading state by calling load()
-  // however IE on Windows 7N has a bug that throws an error so need a try/catch (#793)
-  if (typeof el.load === 'function') {
-    // wrapping in an iife so it's not deoptimized (#1060#discussion_r10324473)
-    (function() {
-      try {
-        el.load();
-      } catch (e) {
-        // not supported
-      }
-    })();
-  }
-};
-/**
- * @fileoverview audioJS-SWF - Custom Flash Player with HTML5-ish API
- * https://github.com/neolao/mp3-player
- * Not using setupTriggers. Using global onEvent func to distribute events
- */
-ajs.flashApi= function (swfId,tech){
-    this.id=swfId;
-    this.tech=tech;
-    };
-ajs.flashApi.prototype.onInit = function (){
-    var url=this.tech.currentSrc();
-    // If so, tell tech it's ready
-    this.tech.triggerReady();
-    this.tech.el_.SetVariable("method:setUrl",url);
-    if (this.startTime!=0) {
-         this.tech.el_.SetVariable("method:setPosition", this.startTime * 1000);
-    }
-    if (this.preload) {
-        this.tech.el_.SetVariable("method:pause","");
-        this.tech.trigger("loadstart")   ;
-    }
-    if (this.autoplay) {
-        this.tech.el_.SetVariable("method:play","");
-    }
-    if (this.muted) {
-        this.tech.el_.SetVariable("method:volume","0");
-        this.tech.player_.cache_['volume']=0;
-
-    }
-
-};
-
-ajs.flashApi.prototype.onUpdate = function(){
-
-        if (this.url == "undefined"){
-            var url=this.tech.currentSrc();
-            this.tech.el_.SetVariable("method:setUrl",url);
-        }
-        if (this.tech.player_.cache_['volume']!=(this.volume/100)){
-            this.tech.player_.cache_['volume']=this.volume/100;
-            this.tech.trigger("volumechange");
-        }
-        if (this.tech.player_.cache_['isPlaying']!=(this.isPlaying=="true")){
-            this.tech.player_.cache_['isPlaying']=this.isPlaying=="true";
-            if (this.tech.player_.cache_['isPlaying']){
-                this.tech.trigger("play");
-                this.tech.trigger("playing");
-            }else{
-                this.tech.trigger("pause");
-            }
-        }
-        if (this.tech.player_.cache_['currentTime']!=(this.position/1000)){
-            this.tech.player_.cache_['currentTime']=this.position/1000;
-            this.tech.trigger("timeupdate");
-        }
-        if (this.tech.player_.cache_['currentTime']==(this.duration/1000)){
-            this.tech.trigger("ended");
-            if (this.loop){
-                this.tech.el_.SetVariable("method:setPosition", "0");
-                this.tech.el_.SetVariable("method:play","");
-                this.tech.trigger("play");
-            }
-        }
-        if (this.tech.player_.cache_['bytesLoaded']!=(this.bytesLoaded)){
-            this.tech.player_.cache_['bytesLoaded']=this.bytesLoaded;
-            this.tech.trigger("progress");
-        }
-        if (this.bytesLoaded==this.bytesTotal) {
-            this..tech.trigger('loadedalldata');
-        }
-        };
-
-/**
- * Flash Media Controller - Wrapper for fallback SWF API
- *
- * @param {ajs.Player} player
- * @param {Object=} options
- * @param {Function=} ready
- * @constructor
- */
-ajs.Flash = ajs.MediaTechController.extend({
-  /** @constructor */
-  init: function(player, options, ready){
-    ajs.MediaTechController.call(this, player, options, ready);
-
-    var source = options['source'];
-        // Which element to embed in
-    var    parentEl = options['parentEl'];
-        // Create a temporary element to be replaced by swf object
-    var    placeHolder = ajs.createEl('div', { id: player.id() + '_temp_flash' });
-        // Generate ID for swf object
-    var    objId = player.id()+'_flash_api';
-        // Store player options in local var for optimization
-        // TODO: switch to using player methods instead of options
-        // e.g. player.autoplay();
-    var    playerOptions = player.options_;
-        // Merge default flashvars with ones passed in to init
-    var    flashVars = {
-          // SWF Callback Functions
-          'listener': "ajs.cache['"+parentEl[ajs.expando]+"']['listener']",
-          'interval':'125',
-          'enabled':true
-          // Player Settings
-        };
-        // Merge default parames with ones passed in
-     var   params =  options['params'];
-        // Merge default attributes with ones passed in
-     var   attributes = ajs.obj.merge({
-          'id': objId,
-          'name': objId, // Both ID and Name needed or swf to identifty itself
-          'class': 'ajs-tech'
-        }, options['attributes']);
-    // If source was supplied pass as a flash var.
-        this.source = source.src;
-    this.listener=ajs.getData(parentEl).listener=new ajs.flashApi(objId,this);
-
-// Update specific tag settings, in case they were overridden
-    this.listener.preload = options['preload'] || true;
-    this.listener.muted = options['muted'] || false;
-    this.listener.startTime = options['startTime'] || 0;
-    this.listener.loop = options['loop'] || false;
-    this.listener.autoplay = options['autoplay'] ||false;
-    // Add placeholder to player div
-    ajs.insertFirst(placeHolder, parentEl);
-
-    this.features['timeupdateEvents'] = true;
-    this.features['progressEvents'] = true;
-    // firefox doesn't bubble mousemove events to parent. audiojs/audio-js-swf#37
-    // bugzilla bug: https://bugzilla.mozilla.org/show_bug.cgi?id=836786
-    if (ajs.IS_FIREFOX) {
-      this.ready(function(){
-        ajs.on(this.el(), 'mousemove', ajs.bind(this, function(){
-          // since it's a custom event, don't bubble higher than the player
-          this.player().trigger({ 'type':'mousemove', 'bubbles': false });
-        }));
-      });
-    }
-
-    // native click events on the SWF aren't triggered on IE11, Win8.1RT
-    // use stageclick events triggered from inside the SWF instead
-    player.on('stageclick', player.reportUserActivity);
-
-    this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
-    player.tag = this.el_;
-
-  }
-});
-
-
-ajs.Flash.prototype.dispose = function(){
-  ajs.MediaTechController.prototype.dispose.call(this);
-};
-
-ajs.Flash.prototype.play = function(){
-if (this.listener.url == "undefined") {
-    this.el_.SetVariable("method:setUrl", this.src);
-                }
-  this.el_.SetVariable("method:play", "");
-
-};
-ajs.Flash.prototype.pause = function(){
-  this.el_.SetVariable("method:pause", "");
-
-};
-ajs.Flash.prototype.paused = function(){ return this.listener.isPlaying == "false"; };
-
-ajs.Flash.prototype.currentTime = function(){ return this.listener.position / 1000; };
-ajs.Flash.prototype.setCurrentTime = function(seconds){
-  this.el_.SetVariable("method:setPosition", seconds * 1000);
-    var tech = this;
-   setTimeout(function(){ tech.trigger("seeked");}, 50);
-};
-
-ajs.Flash.prototype.duration = function(){ return this.listener.duration / 1000 || 0; };
-ajs.Flash.prototype.buffered = function(){
-    var buffer= this.duration()*this.listener.bytesLoaded/this.listener.bytesTotal;
-    return ajs.createTimeRange(0, buffer);
-};
-
-ajs.Flash.prototype.volume = function(){ return this.listener.volume / 100; };
-ajs.Flash.prototype.setVolume = function(percentAsDecimal){
-    this.listener.muted = (percentAsDecimal==0)?true:false;
-    this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
-};
-ajs.Flash.prototype.muted = function(){ return this.listener.muted; };
-ajs.Flash.prototype.setMuted = function(muted){
-    if (muted) {
-        this.el_.SetVariable("method:setVolume","0");
-        this.listener.muted = true;
-    }else{
-        this.el_.SetVariable("method:setVolume","100");
-        this.listener.muted =false;
-    }
-
-};
-
-ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
-ajs.Flash.prototype.height = function(){ return this.el_.offsetHeight; };
-
-ajs.Flash.prototype.src = function(src){
-  if (src === undefined) {
-    return this.currentSrc();
-  }
-
-//  if (ajs.Flash.isStreamingSrc(src)) {volume
-//    src = ajs.Flash.streamToParts(src);
-//    this.setRtmpConnection(src.connection);
-//    this.setRtmpStream(src.stream);
-//  } else {
-    // Make sure source URL is abosolute.
-    src = ajs.getAbsoluteURL(src);
-     this.el_.SetVariable("method:setUrl", src);
-//  }
-
-  // Currently the SWF doesn't autoplay if you load a source later.
-  // e.g. Load player w/ no source, wait 2s, set src.
-  if (this.player_.autoplay()) {
-    var tech = this;
-    setTimeout(function(){ tech.play(); }, 0);
-  }
-};
-ajs.Flash.prototype.load = function(){
-    this.el_.SetVariable("method:setUrl", this.src);
-
-};
-ajs.Flash.prototype.currentSrc = function(){
-  var src = this.listener.url;
-  // no src, check and see if RTMP
-  if ((src == "undefined")||(src == undefined)) {
-  //  var connection = this['rtmpConnection'](),
-  //      stream = this['rtmpStream']();
-
-//    if (connection && stream) {
-//      src = ajs.Flash.streamFromParts(connection, stream);
-  //  }
-      return this.source;
-  }
-  return src;
-};
-
-ajs.Flash.prototype.preload = function(){ return this.listener.preload; };
-ajs.Flash.prototype.setPreload = function(val){ this.listener.preload = val; };
-
-ajs.Flash.prototype.autoplay = function(){ return this.listener.autoplay; };
-ajs.Flash.prototype.setAutoplay = function(val){ this.listener.autoplay = val; };
-
-ajs.Flash.prototype.controls = function(){ return this.listener.controls; };
-ajs.Flash.prototype.setControls = function(val){ this.listener.controls = !!val; };
-
-ajs.Flash.prototype.loop = function(){ return this.listener.loop; };
-ajs.Flash.prototype.setLoop = function(val){ this.listener.loop = val; };
-
-
-ajs.Flash.prototype.ended = function(){ return this.listener.ended; };
-
-
-
-// List of all HTML5 events (various uses).
-ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,seeked,timeupdate,progress,play,pause,volumechange'.split(',');
-
-// Make audio events trigger player events
-// May seem verbose here, but makes other APIs possible.
-// Triggers removed using this.off when disposed
-ajs.Flash.prototype.setupTriggers = function(){
-  for (var i = ajs.Flash.Events.length - 1; i >= 0; i--) {
+	if (this.cache_.bufferEnd < this.buffered().end(0)) {
+	this.trigger('progress');
+	} else if (this.bufferedPercent() == 1) {
+	this.stopTrackingProgress();
+	this.trigger('progress'); // Last update
+	}
+	}), 500);
+	};
+	ajs.Player.prototype.stopTrackingProgress = function(){ clearInterval(this.progressInterval); };
+
+	/*! Time Tracking -------------------------------------------------------------- */
+	ajs.Player.prototype.manualTimeUpdatesOn = function(){
+	this.manualTimeUpdates = true;
+
+	this.on('play', this.trackCurrentTime);
+	this.on('pause', this.stopTrackingCurrentTime);
+	// timeupdate is also called by .currentTime whenever current time is set
+
+	// Watch for native timeupdate event
+	if (this.tech) {
+	this.tech.one('timeupdate', function(){
+	// Update known progress support for this playback technology
+	this.features['timeupdateEvents'] = true;
+	// Turn off manual progress tracking
+	this.player_.manualTimeUpdatesOff();
+	});
+	}
+	};
+
+	ajs.Player.prototype.manualTimeUpdatesOff = function(){
+	this.manualTimeUpdates = false;
+	this.stopTrackingCurrentTime();
+	this.off('play', this.trackCurrentTime);
+	this.off('pause', this.stopTrackingCurrentTime);
+	};
+
+	ajs.Player.prototype.trackCurrentTime = function(){
+	if (this.currentTimeInterval) { this.stopTrackingCurrentTime(); }
+	this.currentTimeInterval = setInterval(ajs.bind(this, function(){
+	this.trigger('timeupdate');
+	}), 250); // 42 = 24 fps // 250 is what Webkit uses // FF uses 15
+	};
+
+	// Turn off play progress tracking (when paused or dragging)
+	ajs.Player.prototype.stopTrackingCurrentTime = function(){
+	clearInterval(this.currentTimeInterval);
+
+	// #1002 - if the audio ends right before the next timeupdate would happen,
+	// the progress bar won't make it all the way to the end
+	this.trigger('timeupdate');
+	};
+	// /* Player event handlers (how the player reacts to certain events)
+	// ================================================================================ */
+
+	/**
+	* Fired when the user agent begins looking for media data
+	* @event loadstart
+	*/
+	ajs.Player.prototype.onLoadStart = function() {
+	// TODO: Update to use `emptied` event instead. See #1277.
+
+	// reset the error state
+	this.error(null);
+
+	// If it's already playing we want to trigger a firstplay event now.
+	// The firstplay event relies on both the play and loadstart events
+	// which can happen in any order for a new source
+	if (!this.paused()) {
+	this.trigger('firstplay');
+	} else {
+	// reset the hasStarted state
+	this.hasStarted(false);
+	this.one('play', function(){
+	this.hasStarted(true);
+	});
+	}
+	};
+
+	ajs.Player.prototype.hasStarted_ = false;
+
+	ajs.Player.prototype.hasStarted = function(hasStarted){
+	if (hasStarted !== undefined) {
+	// only update if this is a new value
+	if (this.hasStarted_ !== hasStarted) {
+	this.hasStarted_ = hasStarted;
+	if (hasStarted) {
+		this.addClass('ajs-has-started');
+		// trigger the firstplay event if this newly has played
+		this.trigger('firstplay');
+	} else {
+		this.removeClass('ajs-has-started');
+	}
+	}
+	return this;
+	}
+	return this.hasStarted_;
+	};
+
+	/**
+	* Fired when the player has initial duration and dimension information
+	* @event loadedmetadata
+	*/
+	ajs.Player.prototype.onLoadedMetaData;
+
+	/**
+	* Fired when the player has downloaded data at the current playback position
+	* @event loadeddata
+	*/
+	ajs.Player.prototype.onLoadedData;
+
+	/**
+	* Fired when the player has finished downloading the source data
+	* @event loadedalldata
+	*/
+	ajs.Player.prototype.onLoadedAllData;
+
+	/**
+	* Fired whenever the media begins or resumes playback
+	* @event play
+	*/
+	ajs.Player.prototype.onPlay = function(){
+	ajs.removeClass(this.el_, 'ajs-paused');
+	ajs.addClass(this.el_, 'ajs-playing');
+	};
+
+	/**
+	* Fired the first time a audio is played
+	*
+	* Not part of the HLS spec, and we're not sure if this is the best
+	* implementation yet, so use sparingly. If you don't have a reason to
+	* prevent playback, use `myPlayer.one('play');` instead.
+	*
+	* @event firstplay
+	*/
+	ajs.Player.prototype.onFirstPlay = function(){
+	//If the first starttime attribute is specified
+	//then we will start at the given offset in seconds
+	if(this.options_['starttime']){
+	this.currentTime(this.options_['starttime']);
+	}
+
+	this.addClass('ajs-has-started');
+	};
+
+	/**
+	* Fired whenever the media has been paused
+	* @event pause
+	*/
+	ajs.Player.prototype.onPause = function(){
+	ajs.removeClass(this.el_, 'ajs-playing');
+	ajs.addClass(this.el_, 'ajs-paused');
+	};
+
+	/**
+	* Fired when the current playback position has changed
+	*
+	* During playback this is fired every 15-250 milliseconds, depnding on the
+	* playback technology in use.
+	* @event timeupdate
+	*/
+	ajs.Player.prototype.onTimeUpdate;
+
+	/**
+	* Fired while the user agent is downloading media data
+	* @event progress
+	*/
+	ajs.Player.prototype.onProgress = function(){
+	// Add custom event for when source is finished downloading.
+	if (this.bufferedPercent() == 1) {
+	this.trigger('loadedalldata');
+	}
+	};
+
+	/**
+	* Fired when the end of the media resource is reached (currentTime == duration)
+	* @event ended
+	*/
+	ajs.Player.prototype.onEnded = function(){
+	if (this.options_['loop']) {
+	this.currentTime(0);
+	this.play();
+	}
+	};
+
+	/**
+	* Fired when the duration of the media resource is first known or changed
+	* @event durationchange
+	*/
+	ajs.Player.prototype.onDurationChange = function(){
+	// Allows for cacheing value instead of asking player each time.
+	// We need to get the techGet response and check for a value so we don't
+	// accidentally cause the stack to blow up.
+	var duration = this.techGet('duration');
+	if (duration) {
+	if (duration < 0) {
+	duration = Infinity;
+	}
+	this.duration(duration);
+	// Determine if the stream is live and propagate styles down to UI.
+	if (duration === Infinity) {
+	this.addClass('ajs-live');
+	} else {
+	this.removeClass('ajs-live');
+	}
+	}
+	};
+
+	/**
+	* Fired when the volume changes
+	* @event volumechange
+	*/
+	ajs.Player.prototype.onVolumeChange;
+
+
+	// /* Player API
+	// ================================================================================ */
+
+	/**
+	* Object for cached values.
+	* @private
+	*/
+	ajs.Player.prototype.cache_;
+
+	ajs.Player.prototype.getCache = function(){
+	return this.cache_;
+	};
+
+	// Pass values to the playback tech
+	ajs.Player.prototype.techCall = function(method, arg){
+	// If it's not ready yet, call method when it is
+	if (this.tech && !this.tech.isReady_) {
+	this.tech.ready(function(){
+	this[method](arg);
+	});
+
+	// Otherwise call method now
+	} else {
+	try {
+	this.tech[method](arg);
+	} catch(e) {
+	ajs.log(e);
+	throw e;
+	}
+	}
+	};
+
+	// Get calls can't wait for the tech, and sometimes don't need to.
+	ajs.Player.prototype.techGet = function(method){
+	if (this.tech && this.tech.isReady_) {
+
+	// Flash likes to die and reload when you hide or reposition it.
+	// In these cases the object methods go away and we get errors.
+	// When that happens we'll catch the errors and inform tech that it's not ready any more.
+	try {
+	return this.tech[method]();
+	} catch(e) {
+	// When building additional tech libs, an expected method may not be defined yet
+	if (this.tech[method] === undefined) {
+		ajs.log('audio.js: ' + method + ' method not defined for '+this.techName+' playback technology.', e);
+	} else {
+		// When a method isn't available on the object it throws a TypeError
+		if (e.name == 'TypeError') {
+		ajs.log('audio.js: ' + method + ' unavailable on '+this.techName+' playback technology element.', e);
+		this.tech.isReady_ = false;
+		} else {
+		ajs.log(e);
+		}
+	}
+	throw e;
+	}
+	}
+
+	return;
+	};
+
+	/**
+	* start media playback
+	*
+	*     myPlayer.play();
+	*
+	* @return {ajs.Player} self
+	*/
+	ajs.Player.prototype.play = function(){
+	this.techCall('play');
+	return this;
+	};
+
+	/**
+	* Pause the audio playback
+	*
+	*     myPlayer.pause();
+	*
+	* @return {ajs.Player} self
+	*/
+	ajs.Player.prototype.pause = function(){
+	this.techCall('pause');
+	return this;
+	};
+
+	/**
+	* Check if the player is paused
+	*
+	*     var isPaused = myPlayer.paused();
+	*     var isPlaying = !myPlayer.paused();
+	*
+	* @return {Boolean} false if the media is currently playing, or true otherwise
+	*/
+	ajs.Player.prototype.paused = function(){
+	// The initial state of paused should be true (in Safari it's actually false)
+	return (this.techGet('paused') === false) ? false : true;
+	};
+
+	/**
+	* Get or set the current time (in seconds)
+	*
+	*     // get
+	*     var whereYouAt = myPlayer.currentTime();
+	*
+	*     // set
+	*     myPlayer.currentTime(120); // 2 minutes into the audio
+	*
+	* @param  {Number|String=} seconds The time to seek to
+	* @return {Number}        The time in seconds, when not setting
+	* @return {ajs.Player}    self, when the current time is set
+	*/
+	ajs.Player.prototype.currentTime = function(seconds){
+	if (seconds !== undefined) {
+
+	this.techCall('setCurrentTime', seconds);
+
+	// improve the accuracy of manual timeupdates
+	if (this.manualTimeUpdates) { this.trigger('timeupdate'); }
+
+	return this;
+	}
+
+	// cache last currentTime and return. default to 0 seconds
+	//
+	// Caching the currentTime is meant to prevent a massive amount of reads on the tech's
+	// currentTime when scrubbing, but may not proaude much performace benefit afterall.
+	// Should be tested. Also something has to read the actual current time or the cache will
+	// never get updated.
+	return this.cache_.currentTime = (this.techGet('currentTime') || 0);
+	};
+
+	/**
+	* Get the length in time of the audio in seconds
+	*
+	*     var lengthOfaudio = myPlayer.duration();
+	*
+	* **NOTE**: The audio must have started loading before the duration can be
+	* known, and in the case of Flash, may not be known until the audio starts
+	* playing.
+	*
+	* @return {Number} The duration of the audio in seconds
+	*/
+	ajs.Player.prototype.duration = function(seconds){
+	if (seconds !== undefined) {
+
+	// cache the last set value for optimiized scrubbing (esp. Flash)
+	this.cache_.duration = parseFloat(seconds);
+
+	return this;
+	}
+
+	if (this.cache_.duration === undefined) {
+	this.onDurationChange();
+	}
+
+	return this.cache_.duration || 0;
+	};
+
+	// Calculates how much time is left. Not in spec, but useful.
+	ajs.Player.prototype.remainingTime = function(){
+	return this.duration() - this.currentTime();
+	};
+
+	// http://dev.w3.org/html5/spec/audio.html#dom-media-buffered
+	// Buffered returns a timerange object.
+	// Kind of like an array of portions of the audio that have been downloaded.
+	// So far no browsers return more than one range (portion)
+
+	/**
+	* Get a TimeRange object with the times of the audio that have been downloaded
+	*
+	* If you just want the percent of the audio that's been downloaded,
+	* use bufferedPercent.
+	*
+	*     // Number of different ranges of time have been buffered. Usually 1.
+	*     numberOfRanges = bufferedTimeRange.length,
+	*
+	*     // Time in seconds when the first range starts. Usually 0.
+	*     firstRangeStart = bufferedTimeRange.start(0),
+	*
+	*     // Time in seconds when the first range ends
+	*     firstRangeEnd = bufferedTimeRange.end(0),
+	*
+	*     // Length in seconds of the first time range
+	*     firstRangeLength = firstRangeEnd - firstRangeStart;
+	*
+	* @return {Object} A mock TimeRange object (following HTML spec)
+	*/
+	ajs.Player.prototype.buffered = function(){
+	var buffered = this.techGet('buffered'),
+	start = 0,
+	buflast = buffered.length - 1,
+	// Default end to 0 and store in values
+	end = this.cache_.bufferEnd = this.cache_.bufferEnd || 0;
+
+	if (buffered && buflast >= 0 && buffered.end(buflast) !== end) {
+	end = buffered.end(buflast);
+	// Storing values allows them be overridden by setBufferedFromProgress
+	this.cache_.bufferEnd = end;
+	}
+
+	return ajs.createTimeRange(start, end);
+	};
+
+	/**
+	* Get the percent (as a decimal) of the audio that's been downloaded
+	*
+	*     var howMuchIsDownloaded = myPlayer.bufferedPercent();
+	*
+	* 0 means none, 1 means all.
+	* (This method isn't in the HTML5 spec, but it's very convenient)
+	*
+	* @return {Number} A decimal between 0 and 1 representing the percent
+	*/
+	ajs.Player.prototype.bufferedPercent = function(){
+	return (this.duration()) ? this.buffered().end(0) / this.duration() : 0;
+	};
+
+	/**
+	* Get or set the current volume of the media
+	*
+	*     // get
+	*     var howLoudIsIt = myPlayer.volume();
+	*
+	*     // set
+	*     myPlayer.volume(0.5); // Set volume to half
+	*
+	* 0 is off (muted), 1.0 is all the way up, 0.5 is half way.
+	*
+	* @param  {Number} percentAsDecimal The new volume as a decimal percent
+	* @return {Number}                  The current volume, when getting
+	* @return {ajs.Player}              self, when setting
+	*/
+	ajs.Player.prototype.volume = function(percentAsDecimal){
+	var vol;
+
+	if (percentAsDecimal !== undefined) {
+	vol = Math.max(0, Math.min(1, parseFloat(percentAsDecimal))); // Force value to between 0 and 1
+	this.cache_.volume = vol;
+	this.techCall('setVolume', vol);
+	ajs.setLocalStorage('volume', vol);
+	return this;
+	}
+
+	// Default to 1 when returning current volume.
+	vol = parseFloat(this.techGet('volume'));
+	return (isNaN(vol)) ? 1 : vol;
+	};
+
+
+	/**
+	* Get the current muted state, or turn mute on or off
+	*
+	*     // get
+	*     var isVolumeMuted = myPlayer.muted();
+	*
+	*     // set
+	*     myPlayer.muted(true); // mute the volume
+	*
+	* @param  {Boolean=} muted True to mute, false to unmute
+	* @return {Boolean} True if mute is on, false if not, when getting
+	* @return {ajs.Player} self, when setting mute
+	*/
+	ajs.Player.prototype.muted = function(muted){
+	if (muted !== undefined) {
+	this.techCall('setMuted', muted);
+	return this;
+	}
+	return this.techGet('muted') || false; // Default to false
+	};
+
+
+
+	ajs.Player.prototype.selectSource = function(sources){
+
+	// Loop through each playback technology in the options order
+	for (var i=0,j=this.options_['techOrder'];i<j.length;i++) {
+	var techName = ajs.capitalize(j[i]),
+		tech = window['audiojs'][techName];
+
+	// Check if the current tech is defined before continuing
+	if (!tech) {
+	ajs.log.error('The "' + techName + '" tech is undefined. Skipped browser support check for that tech.');
+	continue;
+	}
+
+	// Check if the browser supports this technology
+	if (tech.isSupported()) {
+	// Loop through each source object
+	for (var a=0,b=sources;a<b.length;a++) {
+		var source = b[a];
+
+		// Check if source can be played with this technology
+		if (tech['canPlaySource'](source)) {
+		return { source: source, tech: techName };
+		}
+	}
+	}
+	}
+
+	return false;
+	};
+
+	/**
+	* The source function updates the audio source
+	*
+	* There are three types of variables you can pass as the argument.
+	*
+	* **URL String**: A URL to the the audio file. Use this method if you are sure
+	* the current playback technology (HTML5/Flash) can support the source you
+	* proaude. Currently only mp3 files can be used in both HTML5 and Flash.
+	*
+	*     myPlayer.src("http://www.example.com/path/to/audio.mp3");
+	*
+	* **Source Object (or element):** A javascript object containing information
+	* about the source file. Use this method if you want the player to determine if
+	* it can support the file using the type information.
+	*
+	*     myPlayer.src({ type: "audio/mp3", src: "http://www.example.com/path/to/audio.mp3" });
+	*
+	* **Array of Source Objects:** To proaude multiple versions of the source so
+	* that it can be played using HTML5 across browsers you can use an array of
+	* source objects. audio.js will detect which version is supported and load that
+	* file.
+	*
+	*     myPlayer.src([
+	*       { type: "audio/mp3", src: "http://www.example.com/path/to/audio.mp3" },
+	*       { type: "audio/webm", src: "http://www.example.com/path/to/audio.webm" },
+	*       { type: "audio/ogg", src: "http://www.example.com/path/to/audio.ogv" }
+	*     ]);
+	*
+	* @param  {String|Object|Array=} source The source URL, object, or array of sources
+	* @return {String} The current audio source when getting
+	* @return {String} The player when setting
+	*/
+	ajs.Player.prototype.src = function(source){
+	if (source === undefined) {
+	return this.techGet('src');
+	}
+
+	// Case: Array of source objects to choose from and pick the best to play
+	if (ajs.obj.isArray(source)) {
+
+	var sourceTech = this.selectSource(source),
+		techName;
+
+	if (sourceTech) {
+		source = sourceTech.source;
+		techName = sourceTech.tech;
+
+	// If this technology is already loaded, set source
+	if (techName == this.techName) {
+		this.src(source); // Passing the source object
+	// Otherwise load this technology with chosen source
+	} else {
+		this.loadTech(techName, source);
+	}
+	} else {
+	// this.el_.appendChild(ajs.createEl('p', {
+	//   innerHTML: this.options()['notSupportedMessage']
+	// }));
+	this.error({ code: 4, message: this.options()['notSupportedMessage'] });
+	this.triggerReady(); // we could not find an appropriate tech, but let's still notify the delegate that this is it
+	}
+
+	// Case: Source object { src: '', type: '' ... }
+	} else if (source instanceof Object) {
+
+	if (window['audiojs'][this.techName]['canPlaySource'](source)) {
+	this.src(source.src);
+	} else {
+	// Send through tech loop to check for a compatible technology.
+	this.src([source]);
+	}
+
+	// Case: URL String (http://myaudio...)
+	} else {
+	// Cache for getting last set source
+	this.cache_.src = source;
+
+	if (!this.isReady_) {
+	this.ready(function(){
+		this.src(source);
+	});
+	} else {
+	this.techCall('src', source);
+	if (this.options_['preload'] == 'auto') {
+		this.load();
+	}
+	if (this.options_['autoplay']) {
+		this.play();
+	}
+	}
+	}
+
+	return this;
+	};
+
+	// Begin loading the src data
+	// http://dev.w3.org/html5/spec/audio.html#dom-media-load
+	ajs.Player.prototype.load = function(){
+	this.techCall('load');
+	return this;
+	};
+
+	// http://dev.w3.org/html5/spec/audio.html#dom-media-currentsrc
+	ajs.Player.prototype.currentSrc = function(){
+	return this.techGet('currentSrc') || this.cache_.src || '';
+	};
+
+	// Attributes/Options
+	ajs.Player.prototype.preload = function(value){
+	if (value !== undefined) {
+	this.techCall('setPreload', value);
+	this.options_['preload'] = value;
+	return this;
+	}
+	return this.techGet('preload');
+	};
+	ajs.Player.prototype.autoplay = function(value){
+	if (value !== undefined) {
+	this.techCall('setAutoplay', value);
+	this.options_['autoplay'] = value;
+	return this;
+	}
+	return this.techGet('autoplay', value);
+	};
+	ajs.Player.prototype.loop = function(value){
+	if (value !== undefined) {
+	this.techCall('setLoop', value);
+	this.options_['loop'] = value;
+	return this;
+	}
+	return this.techGet('loop');
+	};
+
+
+
+	/**
+	* Whether or not the controls are showing
+	* @type {Boolean}
+	* @private
+	*/
+	ajs.Player.prototype.controls_;
+
+	/**
+	* Get or set whether or not the controls are showing.
+	* @param  {Boolean} controls Set controls to showing or not
+	* @return {Boolean}    Controls are showing
+	*/
+	ajs.Player.prototype.controls = function(bool){
+	if (bool !== undefined) {
+	bool = !!bool; // force boolean
+	// Don't trigger a change event unless it actually changed
+	if (this.controls_ !== bool) {
+	this.controls_ = bool;
+	if (bool) {
+		this.removeClass('ajs-controls-disabled');
+		this.addClass('ajs-controls-enabled');
+		this.trigger('controlsenabled');
+	} else {
+		this.removeClass('ajs-controls-enabled');
+		this.addClass('ajs-controls-disabled');
+		this.trigger('controlsdisabled');
+	}
+	}
+	return this;
+	}
+	return this.controls_;
+	};
+
+	ajs.Player.prototype.usingNativeControls_;
+
+	/**
+	* Toggle native controls on/off. Native controls are the controls built into
+	* devices (e.g. default iPhone controls), Flash, or other techs
+	* (e.g. Vimeo Controls)
+	*
+	* **This should only be set by the current tech, because only the tech knows
+	* if it can support native controls**
+	*
+	* @param  {Boolean} bool    True signals that native controls are on
+	* @return {ajs.Player}      Returns the player
+	* @private
+	*/
+	ajs.Player.prototype.usingNativeControls = function(bool){
+	if (bool !== undefined) {
+	bool = !!bool; // force boolean
+	// Don't trigger a change event unless it actually changed
+	if (this.usingNativeControls_ !== bool) {
+	this.usingNativeControls_ = bool;
+	if (bool) {
+		this.addClass('ajs-using-native-controls');
+
+		/**
+		* player is using the native device controls
+		*
+		* @event usingnativecontrols
+		* @memberof ajs.Player
+		* @instance
+		* @private
+		*/
+		this.trigger('usingnativecontrols');
+	} else {
+		this.removeClass('ajs-using-native-controls');
+
+		/**
+		* player is using the custom HTML controls
+		*
+		* @event usingcustomcontrols
+		* @memberof ajs.Player
+		* @instance
+		* @private
+		*/
+		this.trigger('usingcustomcontrols');
+	}
+	}
+	return this;
+	}
+	return this.usingNativeControls_;
+	};
+
+	/**
+	* Store the current media error
+	* @type {Object}
+	* @private
+	*/
+	ajs.Player.prototype.error_ = null;
+
+	/**
+	* Set or get the current MediaError
+	* @param  {*} err A MediaError or a String/Number to be turned into a MediaError
+	* @return {ajs.MediaError|null}     when getting
+	* @return {ajs.Player}              when setting
+	*/
+	ajs.Player.prototype.error = function(err){
+	if (err === undefined) {
+	return this.error_;
+	}
+
+	// restoring to default
+	if (err === null) {
+	this.error_ = err;
+	this.removeClass('ajs-error');
+	return this;
+	}
+
+	// error instance
+	if (err instanceof ajs.MediaError) {
+	this.error_ = err;
+	} else {
+	this.error_ = new ajs.MediaError(err);
+	}
+
+	// fire an error event on the player
+	this.trigger('error');
+
+	// add the ajs-error classname to the player
+	this.addClass('ajs-error');
+
+	// log the name of the error type and any message
+	// ie8 just logs "[object object]" if you just log the error object
+	ajs.log.error('(CODE:'+this.error_.code+' '+ajs.MediaError.errorTypes[this.error_.code]+')', this.error_.message, this.error_);
+
+	return this;
+	};
+
+	ajs.Player.prototype.ended = function(){ return this.techGet('ended'); };
+	ajs.Player.prototype.seeking = function(){ return this.techGet('seeking'); };
+
+	// When the player is first initialized, trigger activity so components
+	// like the control bar show themselves if needed
+	ajs.Player.prototype.userActivity_ = true;
+	ajs.Player.prototype.reportUserActivity = function(event){
+	this.userActivity_ = true;
+	};
+
+	ajs.Player.prototype.userActive_ = true;
+	ajs.Player.prototype.userActive = function(bool){
+	if (bool !== undefined) {
+	bool = !!bool;
+	if (bool !== this.userActive_) {
+	this.userActive_ = bool;
+	if (bool) {
+		// If the user was inactive and is now active we want to reset the
+		// inactivity timer
+		this.userActivity_ = true;
+		this.removeClass('ajs-user-inactive');
+		this.addClass('ajs-user-active');
+		this.trigger('useractive');
+	} else {
+		// We're switching the state to inactive manually, so erase any other
+		// activity
+		this.userActivity_ = false;
+
+		// Chrome/Safari/IE have bugs where when you change the cursor it can
+		// trigger a mousemove event. This causes an issue when you're hiding
+		// the cursor when the user is inactive, and a mousemove signals user
+		// activity. Making it impossible to go into inactive mode. Specifically
+		// this happens in fullscreen when we really need to hide the cursor.
+		//
+		// When this gets resolved in ALL browsers it can be removed
+		// https://code.google.com/p/chromium/issues/detail?id=103041
+		if(this.tech) {
+		this.tech.one('mousemove', function(e){
+		e.stopPropagation();
+		e.preventDefault();
+		});
+		}
+
+		this.removeClass('ajs-user-active');
+		this.addClass('ajs-user-inactive');
+		this.trigger('userinactive');
+	}
+	}
+	return this;
+	}
+	return this.userActive_;
+	};
+
+	ajs.Player.prototype.listenForUserActivity = function(){
+	var onActivity, onMouseMove, onMouseDown, mouseInProgress, onMouseUp,
+	activityCheck, inactivityTimeout, lastMoveX, lastMoveY;
+
+	onActivity = ajs.bind(this, this.reportUserActivity);
+
+	onMouseMove = function(e) {
+	// #1068 - Prevent mousemove spamming
+	// Chrome Bug: https://code.google.com/p/chromium/issues/detail?id=366970
+	if(e.screenX != lastMoveX || e.screenY != lastMoveY) {
+	lastMoveX = e.screenX;
+	lastMoveY = e.screenY;
+	onActivity();
+	}
+	};
+
+	onMouseDown = function() {
+	onActivity();
+	// For as long as the they are touching the device or have their mouse down,
+	// we consider them active even if they're not moving their finger or mouse.
+	// So we want to continue to update that they are active
+	clearInterval(mouseInProgress);
+	// Setting userActivity=true now and setting the interval to the same time
+	// as the activityCheck interval (250) should ensure we never miss the
+	// next activityCheck
+	mouseInProgress = setInterval(onActivity, 250);
+	};
+
+	onMouseUp = function(event) {
+	onActivity();
+	// Stop the interval that maintains activity if the mouse/touch is down
+	clearInterval(mouseInProgress);
+	};
+
+	// Any mouse movement will be considered user activity
+	this.on('mousedown', onMouseDown);
+	this.on('mousemove', onMouseMove);
+	this.on('mouseup', onMouseUp);
+
+	// Listen for keyboard navigation
+	// Shouldn't need to use inProgress interval because of key repeat
+	this.on('keydown', onActivity);
+	this.on('keyup', onActivity);
+
+	// Run an interval every 250 milliseconds instead of stuffing everything into
+	// the mousemove/touchmove function itself, to prevent performance degradation.
+	// `this.reportUserActivity` simply sets this.userActivity_ to true, which
+	// then gets picked up by this loop
+	// http://ejohn.org/blog/learning-from-twitter/
+	activityCheck = setInterval(ajs.bind(this, function() {
+	// Check to see if mouse/touch activity has happened
+	if (this.userActivity_) {
+	// Reset the activity tracker
+	this.userActivity_ = false;
+
+	// If the user state was inactive, set the state to active
+	this.userActive(true);
+
+	// Clear any existing inactivity timeout to start the timer over
+	clearTimeout(inactivityTimeout);
+
+	// In X seconds, if no more activity has occurred the user will be
+	// considered inactive
+	inactivityTimeout = setTimeout(ajs.bind(this, function() {
+		// Protect against the case where the inactivityTimeout can trigger just
+		// before the next user activity is picked up by the activityCheck loop
+		// causing a flicker
+		if (!this.userActivity_) {
+		this.userActive(false);
+		}
+	}), 2000);
+	}
+	}), 250);
+
+	// Clean up the intervals when we kill the player
+	this.on('dispose', function(){
+	clearInterval(activityCheck);
+	clearTimeout(inactivityTimeout);
+	});
+	};
+
+	// Methods to add support for
+	// networkState: function(){ return this.techCall('networkState'); },
+	// readyState: function(){ return this.techCall('readyState'); },
+	// initialTime: function(){ return this.techCall('initialTime'); },
+	// startOffsetTime: function(){ return this.techCall('startOffsetTime'); },
+	// played: function(){ return this.techCall('played'); },
+	// seekable: function(){ return this.techCall('seekable'); },
+	// audioWidth: function(){ return this.techCall('audioWidth'); },
+	// audioHeight: function(){ return this.techCall('audioHeight'); },
+	// defaultPlaybackRate: function(){ return this.techCall('defaultPlaybackRate'); },
+	// mediaGroup: function(){ return this.techCall('mediaGroup'); },
+	// controller: function(){ return this.techCall('controller'); },
+	// defaultMuted: function(){ return this.techCall('defaultMuted'); }
+
+	// TODO
+	// currentSrcList: the array of sources including other formats and bitrates
+	// playList: array of source lists in order of playback
+	/**
+	* Container of main controls
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @class
+	* @constructor
+	* @extends ajs.Component
+	*/
+	ajs.ControlBar = ajs.Component.extend();
+
+	ajs.ControlBar.prototype.options_ = {
+	loadEvent: 'play',
+	children: {
+	'playToggle': {},
+	'currentTimeDisplay': {},
+	'timedivider': {},
+	'durationDisplay': {},
+	'remainingTimeDisplay': {},
+	'progressControl': {},
+	'volumeControl': {},
+	'muteToggle': {}
+	}
+	};
+
+	ajs.ControlBar.prototype.createEl = function(){
+	return ajs.createEl('div', {
+	className: 'ajs-control-bar'
+	});
+	};
+
+	/**
+	* Button to toggle between play and pause
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @class
+	* @constructor
+	*/
+	ajs.PlayToggle = ajs.Button.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Button.call(this, player, options);
+
+	player.on('play', ajs.bind(this, this.onPlay));
+	player.on('pause', ajs.bind(this, this.onPause));
+	}
+	});
+
+	ajs.PlayToggle.prototype.buttonText = 'Play';
+
+	ajs.PlayToggle.prototype.buildCSSClass = function(){
+	return 'ajs-play-control ' + ajs.Button.prototype.buildCSSClass.call(this);
+	};
+
+	// OnClick - Toggle between play and pause
+	ajs.PlayToggle.prototype.onClick = function(){
+	if (this.player_.paused()) {
+	this.player_.play();
+	} else {
+	this.player_.pause();
+	}
+	};
+
+	// OnPlay - Add the ajs-playing class to the element so it can change appearance
+	ajs.PlayToggle.prototype.onPlay = function(){
+	ajs.removeClass(this.el_, 'ajs-paused');
+	ajs.addClass(this.el_, 'ajs-playing');
+	this.el_.children[0].children[0].innerHTML = 'Pause'; // change the button text to "Pause"
+	};
+
+	// OnPause - Add the ajs-paused class to the element so it can change appearance
+	ajs.PlayToggle.prototype.onPause = function(){
+	ajs.removeClass(this.el_, 'ajs-playing');
+	ajs.addClass(this.el_, 'ajs-paused');
+	this.el_.children[0].children[0].innerHTML = 'Play'; // change the button text to "Play"
+	};
+	/**
+	* Displays the current time
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.CurrentTimeDisplay = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	player.on('timeupdate', ajs.bind(this, this.updateContent));
+	}
+	});
+
+	ajs.CurrentTimeDisplay.prototype.createEl = function(){
+	var el = ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-current-time ajs-time-controls ajs-control'
+	});
+
+	this.contentEl_ = ajs.createEl('div', {
+	className: 'ajs-current-time-display',
+	innerHTML: '<span class="ajs-control-text">Current Time </span>' + '0:00', // label the current time for screen reader users
+	'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
+	});
+
+	el.appendChild(this.contentEl_);
+	return el;
+	};
+
+	ajs.CurrentTimeDisplay.prototype.updateContent = function(){
+	// Allows for smooth scrubbing, when player can't keep up.
+	var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
+	this.contentEl_.innerHTML = '<span class="ajs-control-text">Current Time </span>' + ajs.formatTime(time, this.player_.duration());
+	};
+
+	/**
+	* Displays the duration
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.DurationDisplay = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	// this might need to be changed to 'durationchange' instead of 'timeupdate' eventually,
+	// however the durationchange event fires before this.player_.duration() is set,
+	// so the value cannot be written out using this method.
+	// Once the order of durationchange and this.player_.duration() being set is figured out,
+	// this can be updated.
+	player.on('timeupdate', ajs.bind(this, this.updateContent));
+	}
+	});
+
+	ajs.DurationDisplay.prototype.createEl = function(){
+	var el = ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-duration ajs-time-controls ajs-control'
+	});
+
+	this.contentEl_ = ajs.createEl('div', {
+	className: 'ajs-duration-display',
+	innerHTML: '<span class="ajs-control-text">Duration Time </span>' + '0:00', // label the duration time for screen reader users
+	'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
+	});
+
+	el.appendChild(this.contentEl_);
+	return el;
+	};
+
+	ajs.DurationDisplay.prototype.updateContent = function(){
+	var duration = this.player_.duration();
+	if (duration) {
+	this.contentEl_.innerHTML = '<span class="ajs-control-text">Duration Time </span>' + ajs.formatTime(duration); // label the duration time for screen reader users
+	}
+	};
+
+	/**
+	* The separator between the current time and duration
+	*
+	* Can be hidden if it's not needed in the design.
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.Timedivider = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+	}
+	});
+
+	ajs.Timedivider.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-time-divider',
+	innerHTML: '<div><span>/</span></div>'
+	});
+	};
+
+	/**
+	* Displays the time left in the audio
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.RemainingTimeDisplay = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	player.on('timeupdate', ajs.bind(this, this.updateContent));
+	}
+	});
+
+	ajs.RemainingTimeDisplay.prototype.createEl = function(){
+	var el = ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-remaining-time ajs-time-controls ajs-control'
+	});
+
+	this.contentEl_ = ajs.createEl('div', {
+	className: 'ajs-remaining-time-display',
+	innerHTML: '<span class="ajs-control-text">Remaining Time </span>' + '-0:00', // label the remaining time for screen reader users
+	'aria-live': 'off' // tell screen readers not to automatically read the time as it changes
+	});
+
+	el.appendChild(this.contentEl_);
+	return el;
+	};
+
+	ajs.RemainingTimeDisplay.prototype.updateContent = function(){
+	if (this.player_.duration()) {
+	this.contentEl_.innerHTML = '<span class="ajs-control-text">Remaining Time </span>' + '-'+ ajs.formatTime(this.player_.remainingTime());
+	}
+
+	// Allows for smooth scrubbing, when player can't keep up.
+	// var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
+	// this.contentEl_.innerHTML = ajs.formatTime(time, this.player_.duration());
+	};
+
+	/**
+	* The Progress Control component contains the seek bar, load progress,
+	* and play progress
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.ProgressControl = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+	}
+	});
+
+	ajs.ProgressControl.prototype.options_ = {
+	children: {
+	'seekBar': {}
+	}
+	};
+
+	ajs.ProgressControl.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-progress-control ajs-control'
+	});
+	};
+
+	/**
+	* Seek Bar and holder for the progress bars
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.SeekBar = ajs.Slider.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Slider.call(this, player, options);
+	player.on('timeupdate', ajs.bind(this, this.updateARIAAttributes));
+	player.ready(ajs.bind(this, this.updateARIAAttributes));
+	}
+	});
+
+	ajs.SeekBar.prototype.options_ = {
+	children: {
+	'loadProgressBar': {},
+	'playProgressBar': {},
+	'seekHandle': {}
+	},
+	'barName': 'playProgressBar',
+	'handleName': 'seekHandle'
+	};
+
+	ajs.SeekBar.prototype.playerEvent = 'timeupdate';
+
+	ajs.SeekBar.prototype.createEl = function(){
+	return ajs.Slider.prototype.createEl.call(this, 'div', {
+	className: 'ajs-progress-holder',
+	'aria-label': 'audio progress bar'
+	});
+	};
+
+	ajs.SeekBar.prototype.updateARIAAttributes = function(){
+	// Allows for smooth scrubbing, when player can't keep up.
+	var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
+	this.el_.setAttribute('aria-valuenow',ajs.round(this.getPercent()*100, 2)); // machine readable value of progress bar (percentage complete)
+	this.el_.setAttribute('aria-valuetext',ajs.formatTime(time, this.player_.duration())); // human readable value of progress bar (time complete)
+	};
+
+	ajs.SeekBar.prototype.getPercent = function(){
+	return this.player_.currentTime() / this.player_.duration();
+	};
+
+	ajs.SeekBar.prototype.onMouseDown = function(event){
+	ajs.Slider.prototype.onMouseDown.call(this, event);
+
+	this.player_.scrubbing = true;
+
+	this.audioWasPlaying = !this.player_.paused();
+	this.player_.pause();
+	};
+
+	ajs.SeekBar.prototype.onMouseMove = function(event){
+	var newTime = this.calculateDistance(event) * this.player_.duration();
+
+	// Don't let audio end while scrubbing.
+	if (newTime == this.player_.duration()) { newTime = newTime - 0.1; }
+
+	// Set new time (tell player to seek to new time)
+	this.player_.currentTime(newTime);
+	};
+
+	ajs.SeekBar.prototype.onMouseUp = function(event){
+	ajs.Slider.prototype.onMouseUp.call(this, event);
+
+	this.player_.scrubbing = false;
+	if (this.audioWasPlaying) {
+	this.player_.play();
+	}
+	};
+
+	ajs.SeekBar.prototype.stepForward = function(){
+	this.player_.currentTime(this.player_.currentTime() + 5); // more quickly fast forward for keyboard-only users
+	};
+
+	ajs.SeekBar.prototype.stepBack = function(){
+	this.player_.currentTime(this.player_.currentTime() - 5); // more quickly rewind for keyboard-only users
+	};
+
+
+	/**
+	* Shows load progress
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.LoadProgressBar = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+	player.on('progress', ajs.bind(this, this.update));
+	}
+	});
+
+	ajs.LoadProgressBar.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-load-progress',
+	innerHTML: '<span class="ajs-control-text">Loaded: 0%</span>'
+	});
+	};
+
+	ajs.LoadProgressBar.prototype.update = function(){
+	if (this.el_.style) { this.el_.style.width = ajs.round(this.player_.bufferedPercent() * 100, 2) + '%'; }
+	};
+
+
+	/**
+	* Shows play progress
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.PlayProgressBar = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+	}
+	});
+
+	ajs.PlayProgressBar.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-play-progress',
+	innerHTML: '<span class="ajs-control-text">Progress: 0%</span>'
+	});
+	};
+
+	/**
+	* The Seek Handle shows the current position of the playhead during playback,
+	* and can be dragged to adjust the playhead.
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.SeekHandle = ajs.SliderHandle.extend({
+	init: function(player, options) {
+	ajs.SliderHandle.call(this, player, options);
+	player.on('timeupdate', ajs.bind(this, this.updateContent));
+	}
+	});
+
+	/**
+	* The default value for the handle content, which may be read by screen readers
+	*
+	* @type {String}
+	* @private
+	*/
+	ajs.SeekHandle.prototype.defaultValue = '00:00';
+
+	/** @inheritDoc */
+	ajs.SeekHandle.prototype.createEl = function() {
+	return ajs.SliderHandle.prototype.createEl.call(this, 'div', {
+	className: 'ajs-seek-handle',
+	'aria-live': 'off'
+	});
+	};
+
+	ajs.SeekHandle.prototype.updateContent = function() {
+	var time = (this.player_.scrubbing) ? this.player_.getCache().currentTime : this.player_.currentTime();
+	this.el_.innerHTML = '<span class="ajs-control-text">' + ajs.formatTime(time, this.player_.duration()) + '</span>';
+	};
+	/**
+	* The component for controlling the volume level
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.VolumeControl = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	// hide volume controls when they're not supported by the current tech
+	if (player.tech && player.tech.features && player.tech.features['volumeControl'] === false) {
+	this.addClass('ajs-hidden');
+	}
+	player.on('loadstart', ajs.bind(this, function(){
+	if (player.tech.features && player.tech.features['volumeControl'] === false) {
+		this.addClass('ajs-hidden');
+	} else {
+		this.removeClass('ajs-hidden');
+	}
+	}));
+	}
+	});
+
+	ajs.VolumeControl.prototype.options_ = {
+	children: {
+	'volumeBar': {}
+	}
+	};
+
+	ajs.VolumeControl.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-volume-control ajs-control'
+	});
+	};
+
+	/**
+	* The bar that contains the volume level and can be clicked on to adjust the level
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.VolumeBar = ajs.Slider.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Slider.call(this, player, options);
+	player.on('volumechange', ajs.bind(this, this.updateARIAAttributes));
+	player.ready(ajs.bind(this, this.updateARIAAttributes));
+	}
+	});
+
+	ajs.VolumeBar.prototype.updateARIAAttributes = function(){
+	// Current value of volume bar as a percentage
+	this.el_.setAttribute('aria-valuenow',ajs.round(this.player_.volume()*100, 2));
+	this.el_.setAttribute('aria-valuetext',ajs.round(this.player_.volume()*100, 2)+'%');
+	};
+
+	ajs.VolumeBar.prototype.options_ = {
+	children: {
+	'volumeLevel': {},
+	'volumeHandle': {}
+	},
+	'barName': 'volumeLevel',
+	'handleName': 'volumeHandle'
+	};
+
+	ajs.VolumeBar.prototype.playerEvent = 'volumechange';
+
+	ajs.VolumeBar.prototype.createEl = function(){
+	return ajs.Slider.prototype.createEl.call(this, 'div', {
+	className: 'ajs-volume-bar',
+	'aria-label': 'volume level'
+	});
+	};
+
+	ajs.VolumeBar.prototype.onMouseMove = function(event) {
+	if (this.player_.muted()) {
+	this.player_.muted(false);
+	}
+
+	this.player_.volume(this.calculateDistance(event));
+	};
+
+	ajs.VolumeBar.prototype.getPercent = function(){
+	if (this.player_.muted()) {
+	return 0;
+	} else {
+	return this.player_.volume();
+	}
+	};
+
+	ajs.VolumeBar.prototype.stepForward = function(){
+	this.player_.volume(this.player_.volume() + 0.1);
+	};
+
+	ajs.VolumeBar.prototype.stepBack = function(){
+	this.player_.volume(this.player_.volume() - 0.1);
+	};
+
+	/**
+	* Shows volume level
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.VolumeLevel = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+	}
+	});
+
+	ajs.VolumeLevel.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-volume-level',
+	innerHTML: '<span class="ajs-control-text"></span>'
+	});
+	};
+
+	/**
+	* The volume handle can be dragged to adjust the volume level
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.VolumeHandle = ajs.SliderHandle.extend();
+
+	ajs.VolumeHandle.prototype.defaultValue = '00:00';
+
+	/** @inheritDoc */
+	ajs.VolumeHandle.prototype.createEl = function(){
+	return ajs.SliderHandle.prototype.createEl.call(this, 'div', {
+	className: 'ajs-volume-handle'
+	});
+	};
+	/**
+	* A button component for muting the audio
+	*
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.MuteToggle = ajs.Button.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Button.call(this, player, options);
+
+	player.on('volumechange', ajs.bind(this, this.update));
+
+	// hide mute toggle if the current tech doesn't support volume control
+	if (player.tech && player.tech.features && player.tech.features['volumeControl'] === false) {
+	this.addClass('ajs-hidden');
+	}
+	player.on('loadstart', ajs.bind(this, function(){
+	if (player.tech.features && player.tech.features['volumeControl'] === false) {
+		this.addClass('ajs-hidden');
+	} else {
+		this.removeClass('ajs-hidden');
+	}
+	}));
+	}
+	});
+
+	ajs.MuteToggle.prototype.createEl = function(){
+	return ajs.Button.prototype.createEl.call(this, 'div', {
+	className: 'ajs-mute-control ajs-control',
+	innerHTML: '<div><span class="ajs-control-text">Mute</span></div>'
+	});
+	};
+
+	ajs.MuteToggle.prototype.onClick = function(){
+	this.player_.muted( this.player_.muted() ? false : true );
+	};
+
+	ajs.MuteToggle.prototype.update = function(){
+	var vol = this.player_.volume(),
+	level = 3;
+
+	if (vol === 0 || this.player_.muted()) {
+	level = 0;
+	} else if (vol < 0.33) {
+	level = 1;
+	} else if (vol < 0.67) {
+	level = 2;
+	}
+
+	// Don't rewrite the button text if the actual text doesn't change.
+	// This causes unnecessary and confusing information for screen reader users.
+	// This check is needed because this function gets called every time the volume level is changed.
+	if(this.player_.muted()){
+	if(this.el_.children[0].children[0].innerHTML!='Unmute'){
+		this.el_.children[0].children[0].innerHTML = 'Unmute'; // change the button text to "Unmute"
+	}
+	} else {
+	if(this.el_.children[0].children[0].innerHTML!='Mute'){
+		this.el_.children[0].children[0].innerHTML = 'Mute'; // change the button text to "Mute"
+	}
+	}
+
+	/* TODO improve muted icon classes */
+	for (var i = 0; i < 4; i++) {
+	ajs.removeClass(this.el_, 'ajs-vol-'+i);
+	}
+	ajs.addClass(this.el_, 'ajs-vol-'+level);
+	};
+	/* Loading Spinner
+	================================================================================ */
+	/**
+	* Loading spinner for waiting events
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @class
+	* @constructor
+	*/
+	ajs.LoadingSpinner = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	player.on('canplay', ajs.bind(this, this.hide));
+	player.on('canplaythrough', ajs.bind(this, this.hide));
+	player.on('playing', ajs.bind(this, this.hide));
+	player.on('seeking', ajs.bind(this, this.show));
+
+	// in some browsers seeking does not trigger the 'playing' event,
+	// so we also need to trap 'seeked' if we are going to set a
+	// 'seeking' event
+	player.on('seeked', ajs.bind(this, this.hide));
+
+	player.on('ended', ajs.bind(this, this.hide));
+
+	// Not showing spinner on stalled any more. Browsers may stall and then not trigger any events that would remove the spinner.
+	// Checked in Chrome 16 and Safari 5.1.2. http://help.audiojs.com/discussions/problems/883-why-is-the-download-progress-showing
+	// player.on('stalled', ajs.bind(this, this.show));
+
+	player.on('waiting', ajs.bind(this, this.show));
+	}
+	});
+
+	ajs.LoadingSpinner.prototype.createEl = function(){
+	return ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-loading-spinner'
+	});
+	};
+
+
+	/**
+	* Display that an error has occurred making the audio unplayable
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @constructor
+	*/
+	ajs.ErrorDisplay = ajs.Component.extend({
+	init: function(player, options){
+	ajs.Component.call(this, player, options);
+
+	this.update();
+	player.on('error', ajs.bind(this, this.update));
+	}
+	});
+
+	ajs.ErrorDisplay.prototype.createEl = function(){
+	var el = ajs.Component.prototype.createEl.call(this, 'div', {
+	className: 'ajs-error-display'
+	});
+
+	this.contentEl_ = ajs.createEl('div');
+	el.appendChild(this.contentEl_);
+
+	return el;
+	};
+
+	ajs.ErrorDisplay.prototype.update = function(){
+	if (this.player().error()) {
+	this.contentEl_.innerHTML = this.player().error().message;
+	}
+	};
+	/**
+	* @fileoverview Media Technology Controller - Base class for media playback
+	* technology controllers like Flash and HTML5
+	*/
+
+	/**
+	* Base class for media (HTML5 audio, Flash) controllers
+	* @param {ajs.Player|Object} player  Central player instance
+	* @param {Object=} options Options object
+	* @constructor
+	*/
+	ajs.MediaTechController = ajs.Component.extend({
+	/** @constructor */
+	init: function(player, options, ready){
+	options = options || {};
+	// we don't want the tech to report user activity automatically.
+	// This is done manually in addControlsListeners
+	options.reportTouchActivity = false;
+	ajs.Component.call(this, player, options, ready);
+
+	this.initControlsListeners();
+	}
+	});
+
+	/**
+	* Set up click and touch listeners for the playback element
+	* On desktops, a click on the audio itself will toggle playback,
+	* on a mobile device a click on the audio toggles controls.
+	* (toggling controls is done by toggling the user state between active and
+	* inactive)
+	*
+	* A tap can signal that a user has become active, or has become inactive
+	* e.g. a quick tap on an iPhone movie should reveal the controls. Another
+	* quick tap should hide them again (signaling the user is in an inactive
+	* viewing state)
+	*
+	* In addition to this, we still want the user to be considered inactive after
+	* a few seconds of inactivity.
+	*
+	* Note: the only part of iOS interaction we can't mimic with this setup
+	* is a touch and hold on the audio element counting as activity in order to
+	* keep the controls showing, but that shouldn't be an issue. A touch and hold on
+	* any controls will still keep the user active
+	*/
+	ajs.MediaTechController.prototype.initControlsListeners = function(){
+	var player, tech, activateControls, deactivateControls;
+
+	tech = this;
+	player = this.player();
+
+	var activateControls = function(){
+	if (player.controls() && !player.usingNativeControls()) {
+	tech.addControlsListeners();
+	}
+	};
+
+	deactivateControls = ajs.bind(tech, tech.removeControlsListeners);
+
+	// Set up event listeners once the tech is ready and has an element to apply
+	// listeners to
+	this.ready(activateControls);
+	player.on('controlsenabled', activateControls);
+	player.on('controlsdisabled', deactivateControls);
+	};
+
+	ajs.MediaTechController.prototype.addControlsListeners = function(){
+	var userWasActive;
+
+	// Some browsers (Chrome & IE) don't trigger a click on a flash swf, but do
+	// trigger mousedown/up.
+	// http://stackoverflow.com/questions/1444562/javascript-onclick-event-over-flash-object
+	// Any touch events are set to block the mousedown event from happening
+	this.on('mousedown', this.onClick);
+
+	// If the controls were hidden we don't want that to change without a tap event
+	// so we'll check if the controls were already showing before reporting user
+	// activity
+	this.on('touchstart', function(event) {
+	// Stop the mouse events from also happening
+	event.preventDefault();
+	userWasActive = this.player_.userActive();
+	});
+
+	this.on('touchmove', function(event) {
+	if (userWasActive){
+	this.player().reportUserActivity();
+	}
+	});
+
+	// Turn on component tap events
+	this.emitTapEvents();
+
+	// The tap listener needs to come after the touchend listener because the tap
+	// listener cancels out any reportedUserActivity when setting userActive(false)
+	this.on('tap', this.onTap);
+	};
+
+	/**
+	* Remove the listeners used for click and tap controls. This is needed for
+	* toggling to controls disabled, where a tap/touch should do nothing.
+	*/
+	ajs.MediaTechController.prototype.removeControlsListeners = function(){
+	// We don't want to just use `this.off()` because there might be other needed
+	// listeners added by techs that extend this.
+	this.off('tap');
+	this.off('touchstart');
+	this.off('touchmove');
+	this.off('touchleave');
+	this.off('touchcancel');
+	this.off('touchend');
+	this.off('click');
+	this.off('mousedown');
+	};
+
+	/**
+	* Handle a click on the media element. By default will play/pause the media.
+	*/
+	ajs.MediaTechController.prototype.onClick = function(event){
+	// We're using mousedown to detect clicks thanks to Flash, but mousedown
+	// will also be triggered with right-clicks, so we need to prevent that
+	if (event.button !== 0) return;
+
+	// When controls are disabled a click should not toggle playback because
+	// the click is considered a control
+	if (this.player().controls()) {
+	if (this.player().paused()) {
+	this.player().play();
+	} else {
+	this.player().pause();
+	}
+	}
+	};
+
+	/**
+	* Handle a tap on the media element. By default it will toggle the user
+	* activity state, which hides and shows the controls.
+	*/
+	ajs.MediaTechController.prototype.onTap = function(){
+	this.player().userActive(!this.player().userActive());
+	};
+
+
+
+	ajs.MediaTechController.prototype.features = {
+	'volumeControl': true,
+
+	// Optional events that we can manually mimic with timers
+	// currently not triggered by audio-js-swf
+	'progressEvents': false,
+	'timeupdateEvents': false
+	};
+
+	ajs.media = {};
+
+	/**
+	* List of default API methods for any MediaTechController
+	* @type {String}
+	*/
+	ajs.media.ApiMethods = 'play,pause,paused,currentTime,setCurrentTime,duration,buffered,volume,setVolume,muted,setMuted,width,height,src,load,currentSrc,preload,setPreload,autoplay,setAutoplay,loop,setLoop,error,networkState,readyState,seeking,initialTime,startOffsetTime,played,seekable,ended,audioWidth,audioHeight,mediaGroup,controller,controls,defaultMuted'.split(',');
+	// Create placeholder methods for each that warn when a method isn't supported by the current playback technology
+
+	function createMethod(methodName){
+	return function(){
+	throw new Error('The "'+methodName+'" method is not available on the playback technology\'s API');
+	};
+	}
+
+	for (var i = ajs.media.ApiMethods.length - 1; i >= 0; i--) {
+	var methodName = ajs.media.ApiMethods[i];
+	ajs.MediaTechController.prototype[ajs.media.ApiMethods[i]] = createMethod(methodName);
+	}
+	/**
+	* @fileoverview HTML5 Media Controller - Wrapper for HTML5 Media API
+	*/
+
+	/**
+	* HTML5 Media Controller - Wrapper for HTML5 Media API
+	* @param {ajs.Player|Object} player
+	* @param {Object=} options
+	* @param {Function=} ready
+	* @constructor
+	*/
+	ajs.Html5 = ajs.MediaTechController.extend({
+	/** @constructor */
+	init: function(player, options, ready){
+	// volume cannot be changed from 1 on iOS
+	this.features['volumeControl'] = ajs.Html5.canControlVolume();
+
+
+
+	// In iOS, if you move a audio element in the DOM, it breaks audio playback.
+	this.features['movingMediaElementInDOM'] = !ajs.IS_IOS;
+	ajs.MediaTechController.call(this, player, options, ready);
+	this.setupTriggers();
+
+	var source = options['source'];
+
+	// If the element source is already set, we may have missed the loadstart event, and want to trigger it.
+	// We don't want to set the source again and interrupt playback.
+	if (source && this.el_.currentSrc === source.src && this.el_.networkState > 0) {
+	player.trigger('loadstart');
+	// Otherwise set the source if one was provided.
+	} else if (source) {
+	this.el_.src = source.src;
+	}
+
+	// Determine if native controls should be used
+	// Our goal should be to get the custom controls on mobile solid everywhere
+	// so we can remove this all together. Right now this will block custom
+	// controls on touch enabled laptops like the Chrome Pixel
+	if (ajs.TOUCH_ENABLED && player.options()['nativeControlsForTouch'] !== false) {
+	this.useNativeControls();
+	}
+
+	// Chrome and Safari both have issues with autoplay.
+	// In Safari (5.1.1), when we move the audio element into the container div, autoplay doesn't work.
+	// In Chrome (15), if you have autoplay + a poster + no controls, the audio gets hidden (but audio plays)
+	// This fixes both issues. Need to wait for API, so it updates displays correctly
+	player.ready(function(){
+	if (this.tag && this.options_['autoplay'] && this.paused()) {
+			this.play();
+	}
+	});
+
+	this.triggerReady();
+	}
+	});
+
+	ajs.Html5.prototype.dispose = function(){
+	ajs.MediaTechController.prototype.dispose.call(this);
+	};
+
+	ajs.Html5.prototype.createEl = function(){
+	var player = this.player_,
+	// If possible, reuse original tag for HTML5 playback technology element
+	el = player.tag,
+	newEl,
+	clone;
+
+	// Check if this browser supports moving the element into the box.
+	// On the iPhone audio will break if you move the element,
+	// So we have to create a brand new element.
+	if (!el || this.features['movingMediaElementInDOM'] === false) {
+
+	// If the original tag is still there, clone and remove it.
+	if (el) {
+	clone = el.cloneNode(false);
+	ajs.Html5.disposeMediaElement(el);
+	el = clone;
+	player.tag = null;
+	} else {
+	el = ajs.createEl('audio', {
+		id:player.id() + '_html5_api',
+		className:'ajs-tech'
+	});
+	}
+	// associate the player with the new tag
+	el['player'] = player;
+
+	ajs.insertFirst(el, player.el());
+	}
+
+	// Update specific tag settings, in case they were overridden
+	var attrs = ['autoplay','preload','loop','muted'];
+	for (var i = attrs.length - 1; i >= 0; i--) {
+	var attr = attrs[i];
+	if (player.options_[attr] !== null) {
+	el[attr] = player.options_[attr];
+	}
+	}
+
+	return el;
+	// jenniisawesome = true;
+	};
+
+	// Make audio events trigger player events
+	// May seem verbose here, but makes other APIs possible.
+	// Triggers removed using this.off when disposed
+	ajs.Html5.prototype.setupTriggers = function(){
+	for (var i = ajs.Html5.Events.length - 1; i >= 0; i--) {
+	ajs.on(this.el_, ajs.Html5.Events[i], ajs.bind(this, this.eventHandler));
+	}
+	};
+
+	ajs.Html5.prototype.eventHandler = function(evt){
+	// In the case of an error, set the error prop on the player
+	// and let the player handle triggering the event.
+	if (evt.type == 'error') {
+	this.player().error(this.error().code);
+
+	// in some cases we pass the event directly to the player
+	} else {
+	// No need for media events to bubble up.
+	evt.bubbles = false;
+
+	this.player().trigger(evt);
+	}
+	};
+
+	ajs.Html5.prototype.useNativeControls = function(){
+	var tech, player, controlsOn, controlsOff, cleanUp;
+
+	tech = this;
+	player = this.player();
+
+	// If the player controls are enabled turn on the native controls
+	tech.setControls(player.controls());
+
+	// Update the native controls when player controls state is updated
+	controlsOn = function(){
+	tech.setControls(true);
+	};
+	controlsOff = function(){
+	tech.setControls(false);
+	};
+	player.on('controlsenabled', controlsOn);
+	player.on('controlsdisabled', controlsOff);
+
+	// Clean up when not using native controls anymore
+	cleanUp = function(){
+	player.off('controlsenabled', controlsOn);
+	player.off('controlsdisabled', controlsOff);
+	};
+	tech.on('dispose', cleanUp);
+	player.on('usingcustomcontrols', cleanUp);
+
+	// Update the state of the player to using native controls
+	player.usingNativeControls(true);
+	};
+
+
+	ajs.Html5.prototype.play = function(){ this.el_.play(); };
+	ajs.Html5.prototype.pause = function(){ this.el_.pause(); };
+	ajs.Html5.prototype.paused = function(){ return this.el_.paused; };
+
+	ajs.Html5.prototype.currentTime = function(){ return this.el_.currentTime; };
+	ajs.Html5.prototype.setCurrentTime = function(seconds){
+	try {
+	this.el_.currentTime = seconds;
+	} catch(e) {
+	ajs.log(e, 'audio is not ready. (audio.js)');
+	// this.warning(audioJS.warnings.audioNotReady);
+	}
+	};
+
+	ajs.Html5.prototype.duration = function(){ return this.el_.duration || 0; };
+	ajs.Html5.prototype.buffered = function(){ return this.el_.buffered; };
+
+	ajs.Html5.prototype.volume = function(){ return this.el_.volume; };
+	ajs.Html5.prototype.setVolume = function(percentAsDecimal){ this.el_.volume = percentAsDecimal; };
+	ajs.Html5.prototype.muted = function(){ return this.el_.muted; };
+	ajs.Html5.prototype.setMuted = function(muted){ this.el_.muted = muted; };
+
+	ajs.Html5.prototype.width = function(){ return this.el_.offsetWidth; };
+	ajs.Html5.prototype.height = function(){ return this.el_.offsetHeight; };
+
+
+	ajs.Html5.prototype.src = function(src){ this.el_.src = src; };
+	ajs.Html5.prototype.load = function(){ this.el_.load(); };
+	ajs.Html5.prototype.currentSrc = function(){ return this.el_.currentSrc; };
+
+
+	ajs.Html5.prototype.preload = function(){ return this.el_.preload; };
+	ajs.Html5.prototype.setPreload = function(val){ this.el_.preload = val; };
+
+	ajs.Html5.prototype.autoplay = function(){ return this.el_.autoplay; };
+	ajs.Html5.prototype.setAutoplay = function(val){ this.el_.autoplay = val; };
+
+	ajs.Html5.prototype.controls = function(){ return this.el_.controls; };
+	ajs.Html5.prototype.setControls = function(val){ this.el_.controls = !!val; };
+
+	ajs.Html5.prototype.loop = function(){ return this.el_.loop; };
+	ajs.Html5.prototype.setLoop = function(val){ this.el_.loop = val; };
+
+	ajs.Html5.prototype.error = function(){ return this.el_.error; };
+	ajs.Html5.prototype.seeking = function(){ return this.el_.seeking; };
+	ajs.Html5.prototype.ended = function(){ return this.el_.ended; };
+	ajs.Html5.prototype.defaultMuted = function(){ return this.el_.defaultMuted; };
+
+
+	/* HTML5 Support Testing ---------------------------------------------------- */
+
+	ajs.Html5.isSupported = function(){
+	// ie9 with no Media Player is a LIAR! (#984)
+	try {
+	ajs.TEST_aud['volume'] = 0.5;
+	} catch (e) {
+	return false;
+	}
+
+	return !!ajs.TEST_aud.canPlayType;
+	};
+
+	ajs.Html5.canPlaySource = function(srcObj){
+	// IE9 on Windows 7 without MediaPlayer throws an error here
+	// https://github.com/audiojs/audio.js/issues/519
+	try {
+	return !!ajs.TEST_aud.canPlayType(srcObj.type);
+	} catch(e) {
+	return '';
+	}
+	// TODO: Check Type
+	// If no Type, check ext
+	// Check Media Type
+	};
+
+	ajs.Html5.canControlVolume = function(){
+	var volume =  ajs.TEST_aud.volume;
+	ajs.TEST_aud.volume = (volume / 2) + 0.1;
+	return volume !== ajs.TEST_aud.volume;
+	};
+
+
+	// HTML5 Feature detection and Device Fixes --------------------------------- //
+	(function() {
+	var canPlayType,
+	mpegurlRE = /^application\/(?:x-|vnd\.apple\.)mpegurl/i,
+	mp3RE = /^audio\/mp3/i;
+
+	ajs.Html5.patchCanPlayType = function() {
+	// Android 4.0 and above can play HLS to some extent but it reports being unable to do so
+	if (ajs.ANDROID_VERSION >= 4.0) {
+	if (!canPlayType) {
+		canPlayType = ajs.TEST_aud.constructor.prototype.canPlayType;
+	}
+
+	ajs.TEST_aud.constructor.prototype.canPlayType = function(type) {
+		if (type && mpegurlRE.test(type)) {
+		return 'maybe';
+		}
+		return canPlayType.call(this, type);
+	};
+	}
+
+	// Override Android 2.2 and less canPlayType method which is broken
+	if (ajs.IS_OLD_ANDROID) {
+	if (!canPlayType) {
+		canPlayType = ajs.TEST_aud.constructor.prototype.canPlayType;
+	}
+
+	ajs.TEST_aud.constructor.prototype.canPlayType = function(type){
+		if (type && mp3RE.test(type)) {
+		return 'maybe';
+		}
+		return canPlayType.call(this, type);
+	};
+	}
+	};
+
+	ajs.Html5.unpatchCanPlayType = function() {
+	var r = ajs.TEST_aud.constructor.prototype.canPlayType;
+	ajs.TEST_aud.constructor.prototype.canPlayType = canPlayType;
+	canPlayType = null;
+	return r;
+	};
+
+	// by default, patch the audio element
+	ajs.Html5.patchCanPlayType();
+	})();
+
+	// List of all HTML5 events (various uses).
+	ajs.Html5.Events = 'loadstart,suspend,abort,error,emptied,stalled,loadedmetadata,loadeddata,canplay,canplaythrough,playing,waiting,seeking,seeked,ended,durationchange,timeupdate,progress,play,pause,volumechange'.split(',');
+
+	ajs.Html5.disposeMediaElement = function(el){
+	if (!el) { return; }
+
+	el['player'] = null;
+
+	if (el.parentNode) {
+	el.parentNode.removeChild(el);
+	}
+
+	// remove any child track or source nodes to prevent their loading
+	while(el.hasChildNodes()) {
+	el.removeChild(el.firstChild);
+	}
+
+	// remove any src reference. not setting `src=''` because that causes a warning
+	// in firefox
+	el.removeAttribute('src');
+
+	// force the media element to update its loading state by calling load()
+	// however IE on Windows 7N has a bug that throws an error so need a try/catch (#793)
+	if (typeof el.load === 'function') {
+	// wrapping in an iife so it's not deoptimized (#1060#discussion_r10324473)
+	(function() {
+	try {
+		el.load();
+	} catch (e) {
+		// not supported
+	}
+	})();
+	}
+	};
+	/**
+	* @fileoverview audioJS-SWF - Custom Flash Player with HTML5-ish API
+	* https://github.com/neolao/mp3-player
+	* Not using setupTriggers. Using global onEvent func to distribute events
+	*/
+	ajs.flashApi= function (swfId,tech){
+	this.id=swfId;
+	this.tech=tech;
+	};
+	ajs.flashApi.prototype.onInit = function (){
+	var url=this.tech.currentSrc();
+	// If so, tell tech it's ready
+	this.tech.triggerReady();
+	this.tech.el_.SetVariable("method:setUrl",url);
+	if (this.startTime!=0) {
+		this.tech.el_.SetVariable("method:setPosition", this.startTime * 1000);
+	}
+	if (this.preload) {
+		this.tech.el_.SetVariable("method:play","");
+		this.tech.trigger("loadstart")   ;
+		if (!this.autoplay) {
+			this.tech.el_.SetVariable("method:pause","");
+		}
+	}
+	if (this.muted) {
+		this.tech.el_.SetVariable("method:volume","0");
+		this.tech.player_.cache_['volume']=0;
+
+	}
+
+	};
+
+	ajs.flashApi.prototype.onUpdate = function(){
+
+		if (this.url == "undefined"){
+		var url=this.tech.currentSrc();
+		this.tech.el_.SetVariable("method:setUrl",url);
+		}
+		if (this.tech.player_.cache_['volume']!=(this.volume/100)){
+		this.tech.player_.cache_['volume']=this.volume/100;
+		this.tech.trigger("volumechange");
+		}
+		if (this.tech.player_.cache_['isPlaying']!=(this.isPlaying=="true")){
+		this.tech.player_.cache_['isPlaying']=this.isPlaying=="true";
+		if (this.tech.player_.cache_['isPlaying']){
+			this.tech.trigger("play");
+			this.tech.trigger("playing");
+		}else{
+			this.tech.trigger("pause");
+		}
+		}
+		if ((this.tech.player_.cache_['currentTime']>(this.position/1000))&&(this.position=="0")){
+		this.tech.trigger("ended");
+		if (this.loop && (!this.tech.player_.cache_['isPlaying'])){
+			this.tech.el_.SetVariable("method:play","");
+			this.tech.trigger("play");
+		}
+		}
+		if (this.tech.player_.cache_['currentTime']!=(this.position/1000)){
+		this.tech.player_.cache_['currentTime']=this.position/1000;
+		this.tech.player_.cache_['duration']=this.duration/1000;
+		this.tech.trigger("timeupdate");
+		}
+		if (this.tech.player_.cache_['bytesLoaded']!=(this.bytesLoaded)){
+		this.tech.player_.cache_['bytesLoaded']=this.bytesLoaded;
+		this.tech.trigger("progress");
+		if (this.bytesPercent=="100") {
+			this.tech.trigger('loadedalldata');
+		}
+		}
+		};
+
+	/**
+	* Flash Media Controller - Wrapper for fallback SWF API
+	*
+	* @param {ajs.Player} player
+	* @param {Object=} options
+	* @param {Function=} ready
+	* @constructor
+	*/
+	ajs.Flash = ajs.MediaTechController.extend({
+	/** @constructor */
+	init: function(player, options, ready){
+	ajs.MediaTechController.call(this, player, options, ready);
+
+	var source = options['source'];
+		// Which element to embed in
+	var    parentEl = options['parentEl'];
+		// Create a temporary element to be replaced by swf object
+	var    placeHolder = ajs.createEl('div', { id: player.id() + '_temp_flash' });
+		// Generate ID for swf object
+	var    objId = player.id()+'_flash_api';
+		// Store player options in local var for optimization
+		// TODO: switch to using player methods instead of options
+		// e.g. player.autoplay();
+	var    playerOptions = player.options_;
+		// Merge default flashvars with ones passed in to init
+	var    flashVars = {
+		// SWF Callback Functions
+		'listener': "ajs.cache['"+parentEl[ajs.expando]+"']['listener']",
+		'interval':'125',
+		'enabled':true
+		// Player Settings
+		};
+		// Merge default parames with ones passed in
+	var   params =  options['params'];
+		// Merge default attributes with ones passed in
+	var   attributes = ajs.obj.merge({
+		'id': objId,
+		'name': objId, // Both ID and Name needed or swf to identifty itself
+		'class': 'ajs-tech'
+		}, options['attributes']);
+	// If source was supplied pass as a flash var.
+		this.source = source.src;
+	this.listener=ajs.getData(parentEl).listener=new ajs.flashApi(objId,this);
+
+	// Update specific tag settings, in case they were overridden
+	this.listener.preload = playerOptions['preload'] || true;
+	this.listener.muted = playerOptions['muted'] || false;
+	this.listener.startTime = playerOptions['startTime'] || 0;
+	this.listener.loop = playerOptions['loop'] || false;
+	this.listener.autoplay = playerOptions['autoplay'] ||false;
+	// Add placeholder to player div
+	ajs.insertFirst(placeHolder, parentEl);
+
+	this.features['timeupdateEvents'] = true;
+	this.features['progressEvents'] = true;
+	// firefox doesn't bubble mousemove events to parent. audiojs/audio-js-swf#37
+	// bugzilla bug: https://bugzilla.mozilla.org/show_bug.cgi?id=836786
+	if (ajs.IS_FIREFOX) {
+	this.ready(function(){
+		ajs.on(this.el(), 'mousemove', ajs.bind(this, function(){
+		// since it's a custom event, don't bubble higher than the player
+		this.player().trigger({ 'type':'mousemove', 'bubbles': false });
+		}));
+	});
+	}
+
+	// native click events on the SWF aren't triggered on IE11, Win8.1RT
+	// use stageclick events triggered from inside the SWF instead
+	player.on('stageclick', player.reportUserActivity);
+
+	this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
+	player.tag = this.el_;
+
+	}
+	});
+
+
+	ajs.Flash.prototype.dispose = function(){
+	ajs.MediaTechController.prototype.dispose.call(this);
+	};
+
+	ajs.Flash.prototype.play = function(){
+	if (this.listener.url == "undefined") {
+	this.el_.SetVariable("method:setUrl", this.src);
+			}
+	this.el_.SetVariable("method:play", "");
+
+	};
+	ajs.Flash.prototype.pause = function(){
+	this.el_.SetVariable("method:pause", "");
+
+	};
+	ajs.Flash.prototype.paused = function(){ return this.listener.isPlaying == "false"; };
+
+	ajs.Flash.prototype.currentTime = function(){ return this.listener.position / 1000; };
+	ajs.Flash.prototype.setCurrentTime = function(seconds){
+	this.el_.SetVariable("method:setPosition", seconds * 1000);
+	var tech = this;
+	setTimeout(function(){ tech.trigger("seeked");}, 50);
+	};
+
+	ajs.Flash.prototype.duration = function(){ return this.listener.duration / 1000 || 0; };
+	ajs.Flash.prototype.buffered = function(){
+	var buffer= this.duration()*this.listener.bytesLoaded/this.listener.bytesTotal;
+	return ajs.createTimeRange(0, buffer);
+	};
+
+	ajs.Flash.prototype.volume = function(){ return this.listener.volume / 100; };
+	ajs.Flash.prototype.setVolume = function(percentAsDecimal){
+	this.listener.muted = (percentAsDecimal==0)?true:false;
+	this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
+	};
+	ajs.Flash.prototype.muted = function(){ return this.listener.muted; };
+	ajs.Flash.prototype.setMuted = function(muted){
+	if (muted) {
+		this.el_.SetVariable("method:setVolume","0");
+		this.listener.muted = true;
+	}else{
+		this.el_.SetVariable("method:setVolume","100");
+		this.listener.muted =false;
+	}
+
+	};
+
+	ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
+	ajs.Flash.prototype.height = function(){ return this.el_.offsetHeight; };
+
+	ajs.Flash.prototype.src = function(src){
+	if (src === undefined) {
+	return this.currentSrc();
+	}
+
+	//  if (ajs.Flash.isStreamingSrc(src)) {volume
+	//    src = ajs.Flash.streamToParts(src);
+	//    this.setRtmpConnection(src.connection);
+	//    this.setRtmpStream(src.stream);
+	//  } else {
+	// Make sure source URL is abosolute.
+	src = ajs.getAbsoluteURL(src);
+	this.el_.SetVariable("method:setUrl", src);
+	//  }
+
+	// Currently the SWF doesn't autoplay if you load a source later.
+	// e.g. Load player w/ no source, wait 2s, set src.
+	if (this.player_.autoplay()) {
+	var tech = this;
+	setTimeout(function(){ tech.play(); }, 0);
+	}
+	};
+	ajs.Flash.prototype.load = function(){
+	this.el_.SetVariable("method:setUrl", this.src);
+
+	};
+	ajs.Flash.prototype.currentSrc = function(){
+	var src = this.listener.url;
+	// no src, check and see if RTMP
+	if ((src == "undefined")||(src == undefined)) {
+	//  var connection = this['rtmpConnection'](),
+	//      stream = this['rtmpStream']();
+
+	//    if (connection && stream) {
+	//      src = ajs.Flash.streamFromParts(connection, stream);
+	//  }
+	return this.source;
+	}
+	return src;
+	};
+
+	ajs.Flash.prototype.preload = function(){ return this.listener.preload; };
+	ajs.Flash.prototype.setPreload = function(val){ this.listener.preload = val; };
+
+	ajs.Flash.prototype.autoplay = function(){ return this.listener.autoplay; };
+	ajs.Flash.prototype.setAutoplay = function(val){ this.listener.autoplay = val; };
+
+	ajs.Flash.prototype.controls = function(){ return this.listener.controls; };
+	ajs.Flash.prototype.setControls = function(val){ this.listener.controls = !!val; };
+
+	ajs.Flash.prototype.loop = function(){ return this.listener.loop; };
+	ajs.Flash.prototype.setLoop = function(val){ this.listener.loop = val; };
+
+
+	ajs.Flash.prototype.ended = function(){ return this.listener.ended; };
+
+
+
+	// List of all HTML5 events (various uses).
+	ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,seeked,timeupdate,progress,play,pause,volumechange'.split(',');
+
+	// Make audio events trigger player events
+	// May seem verbose here, but makes other APIs possible.
+	// Triggers removed using this.off when disposed
+	ajs.Flash.prototype.setupTriggers = function(){
+	for (var i = ajs.Flash.Events.length - 1; i >= 0; i--) {
     ajs.on(this.el_, ajs.Flash.Events[i], ajs.bind(this, this.eventHandler));
   }
 };

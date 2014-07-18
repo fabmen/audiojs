@@ -33,7 +33,7 @@
       <source src="audio/PalaceCat-Crookshanks.ogg" type="audio/ogg">
     </audio>
     <H2>vim</h2>
-    <audio i  controls="true" preload="auto"   class="audio-js vim-skin " width="auto" height="auto" data-setup='{"techOrder":["html5","flash"]}'>
+    <audio i  controls="true" preload="auto" startTime="10" loop="true"  class="audio-js vim-skin " width="auto" height="auto" data-setup='{"techOrder":["html5","flash"]}'>
        <source src="audio/PalaceCat-Crookshanks.mp3" type="audio/mp3">
       <source src="audio/PalaceCat-Crookshanks.ogg" type="audio/ogg">
     </audio>
@@ -43,86 +43,13 @@
       <source src="audio/PalaceCat-Crookshanks.ogg" type="audio/ogg">
     </audio>
     <h2>Dynamically-loaded audio file with .ogg fallback</h2>
-    <audio  id="audio-flash" controls="true" preload="auto"  class="audio-js ajs-default-skin " width="auto" height="auto" data-setup='{"techOrder":["flash","html5"]}'>
+    <audio  id="audio-flash" controls="true" preload="auto" autoplay="true" loop="true" class="audio-js ajs-default-skin " width="auto" height="auto" data-setup='{"techOrder":["flash","html5"]}'>
        <source src="audio/PalaceCat-Crookshanks.mp3" type="audio/mp3">
       <source src="audio/PalaceCat-Crookshanks.ogg" type="audio/ogg">
     </audio>
 
      
 <h2>Preview</h2>
-<script type="text/javascript">
-	//<![CDATA[
-var myListener = new Object();
-
-/**
- * Initialisation
- */
-myListener.onInit = function()
-{
-	this.position = 0;
-};
-/**
- * Update
- */
-myListener.onUpdate = function()
-{
-
-	var isPlaying = (this.isPlaying == "true");
-
-	var timelineWidth = 160;
-	var sliderWidth = 40;
-	var sliderPositionMin = 40;
-	var sliderPositionMax = sliderPositionMin + timelineWidth - sliderWidth;
-	var sliderPosition = sliderPositionMin + Math.round((timelineWidth - sliderWidth) * this.position / this.duration);
-
-	if (sliderPosition < sliderPositionMin) {
-		sliderPosition = sliderPositionMin;
-	}
-	if (sliderPosition > sliderPositionMax) {
-		sliderPosition = sliderPositionMax;
-	}
-
-};
-
-function getFlashObject()
-{
-	return document.getElementById("myFlash");
-}
-function play()
-{
-	if (myListener.position == 0) {
-		getFlashObject().SetVariable("method:setUrl", "audio/PalaceCat-Crookshanks.mp3");
-	}
-	getFlashObject().SetVariable("method:play", "");
-	getFlashObject().SetVariable("enabled", "true");
-}
-function pause()
-{
-	getFlashObject().SetVariable("method:pause", "");
-}
-function stop()
-{
-	getFlashObject().SetVariable("method:stop", "");
-}
-//]]>
-</script>
-<!--[if IE]>
-<script type="text/javascript" event="FSCommand(command,args)" for="myFlash">
-	eval(args);
-	</script>
-	<![endif]-->
-
-	<object class="playerpreview" id="myFlash" type="application/x-shockwave-flash" data="../player_mp3_js.swf" height="1" width="1">
-		<param name="movie" value="../player_mp3_js.swf">
-		<param name="AllowScriptAccess" value="always">
-		<param name="FlashVars" value="listener=myListener&interval=500">
-	</object>
-	<div id="playercontroller">
-		<div id="playerplay" class="button play"><a href="javascript:play()">PLAY</a></div>
-		<div id="playerpause" class="button pause"><a href="javascript:pause()">PAUSE</a></div>
-		<div id="playerstop" class="button stop"><a href="javascript:stop()">STOP</a></div>
-																												                    <div class="timeline"><a id="playerslider" href="#slider">SLIDER</a></div>
-																														                </div>
 
 
        
