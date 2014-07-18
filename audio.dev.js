@@ -1453,10 +1453,10 @@ ajs.findPosition = function(el) {
 ajs.util = {};
 
 /**
- * Merge two options objects, 
+ * Merge two options objects,
  * recursively merging any plain object properties as well.
  * Previously `deepMerge`
- * 
+ *
  * @param  {Object} obj1 Object to override values in
  * @param  {Object} obj2 Overriding object
  * @return {Object}      New object -- obj1 and obj2 will be untouched
@@ -2994,7 +2994,7 @@ ajs.Player.prototype.getTagSettings = function(tag){
       childName = child.nodeName.toLowerCase();
       if (childName === 'source') {
         options['sources'].push(ajs.getAttributeValues(child));
-      } 
+      }
     }
   }
 
@@ -3022,7 +3022,7 @@ ajs.Player.prototype.createEl = function(){
     while (nodesLength--) {
       node = nodes[nodesLength];
       nodeName = node.nodeName.toLowerCase();
-      
+
     }
 
     for (i=0; i<removeNodes.length; i++) {
@@ -3071,7 +3071,7 @@ ajs.Player.prototype.createEl = function(){
   this.on('pause', this.onPause);
   this.on('progress', this.onProgress);
   this.on('durationchange', this.onDurationChange);
-  
+
 
   return el;
 };
@@ -5003,7 +5003,7 @@ ajs.Html5 = ajs.MediaTechController.extend({
     // volume cannot be changed from 1 on iOS
     this.features['volumeControl'] = ajs.Html5.canControlVolume();
 
-    
+
 
     // In iOS, if you move a audio element in the DOM, it breaks audio playback.
     this.features['movingMediaElementInDOM'] = !ajs.IS_IOS;
@@ -5016,7 +5016,7 @@ ajs.Html5 = ajs.MediaTechController.extend({
     // We don't want to set the source again and interrupt playback.
     if (source && this.el_.currentSrc === source.src && this.el_.networkState > 0) {
       player.trigger('loadstart');
-    // Otherwise set the source if one was proauded.
+    // Otherwise set the source if one was provided.
     } else if (source) {
       this.el_.src = source.src;
     }
@@ -5319,20 +5319,66 @@ ajs.flashApi= function (swfId,tech){
     this.tech=tech;
     };
 ajs.flashApi.prototype.onInit = function (){
-		    var url=this.tech.currentSrc();
-                    this.tech.el_.SetVariable("method:setUrl",url);
+    var url=this.tech.currentSrc();
+    // If so, tell tech it's ready
+    this.tech.triggerReady();
+    this.tech.el_.SetVariable("method:setUrl",url);
+    if (this.startTime!=0) {
+         this.tech.el_.SetVariable("method:setPosition", this.startTime * 1000);
+    }
+    if (this.preload) {
+        this.tech.el_.SetVariable("method:pause","");
+        this.tech.trigger("loadstart")   ;
+    }
+    if (this.autoplay) {
+        this.tech.el_.SetVariable("method:play","");
+    }
+    if (this.muted) {
+        this.tech.el_.SetVariable("method:volume","0");
+        this.tech.player_.cache_['volume']=0;
+
+    }
+
 };
 
 ajs.flashApi.prototype.onUpdate = function(){
-                     
-            if (this.url == "undefined"){
-		    var url=this.tech.currentSrc();
-                    this.tech.el_.SetVariable("method:setUrl",url);
-	    }
-	    if (this.tech.player_.cache_['volume']!=(this.volume/100)){
-	        this.tech.player_.cache_['volume']=this.volume/100;
-		this.tech.trigger("volumechange");
-	    }
+
+        if (this.url == "undefined"){
+            var url=this.tech.currentSrc();
+            this.tech.el_.SetVariable("method:setUrl",url);
+        }
+        if (this.tech.player_.cache_['volume']!=(this.volume/100)){
+            this.tech.player_.cache_['volume']=this.volume/100;
+            this.tech.trigger("volumechange");
+        }
+        if (this.tech.player_.cache_['isPlaying']!=(this.isPlaying=="true")){
+            this.tech.player_.cache_['isPlaying']=this.isPlaying=="true";
+            if (this.tech.player_.cache_['isPlaying']){
+                this.tech.trigger("play");
+                this.tech.trigger("playing");
+            }else{
+                this.tech.trigger("pause");
+            }
+        }
+        if (this.tech.player_.cache_['currentTime']!=(this.position/1000)){
+            this.tech.player_.cache_['currentTime']=this.position/1000;
+            this.tech.trigger("timeupdate");
+        }
+        if (this.tech.player_.cache_['currentTime']==(this.duration/1000)){
+            this.tech.trigger("ended");
+            if (this.loop){
+                this.tech.el_.SetVariable("method:setPosition", "0");
+                this.tech.el_.SetVariable("method:play","");
+                this.tech.trigger("play");
+            }
+        }
+        if (this.tech.player_.cache_['bytesLoaded']!=(this.bytesLoaded)){
+            this.tech.player_.cache_['bytesLoaded']=this.bytesLoaded;
+            this.tech.trigger("progress");
+        }
+        if (this.bytesLoaded==this.bytesTotal) {
+            this..tech.trigger('loadedalldata');
+        }
         };
 
 /**
@@ -5347,7 +5393,7 @@ ajs.Flash = ajs.MediaTechController.extend({
   /** @constructor */
   init: function(player, options, ready){
     ajs.MediaTechController.call(this, player, options, ready);
-    
+
     var source = options['source'];
         // Which element to embed in
     var    parentEl = options['parentEl'];
@@ -5378,31 +5424,18 @@ ajs.Flash = ajs.MediaTechController.extend({
     // If source was supplied pass as a flash var.
         this.source = source.src;
     this.listener=ajs.getData(parentEl).listener=new ajs.flashApi(objId,this);
- //   this['setCurrentTime'] = function(time){
-      
-   // };
-    //this['currentTime'] = function(time){
-      // when seeking make the reported time keep up with the requested time
-      // by reading the time we're seeking to
-    //  if (this.seeking()) {
-      //  return false;
-      //}
-      //return true;
-    //};
 
+// Update specific tag settings, in case they were overridden
+    this.listener.preload = options['preload'] || true;
+    this.listener.muted = options['muted'] || false;
+    this.listener.startTime = options['startTime'] || 0;
+    this.listener.loop = options['loop'] || false;
+    this.listener.autoplay = options['autoplay'] ||false;
     // Add placeholder to player div
     ajs.insertFirst(placeHolder, parentEl);
 
-    // Having issues with Flash reloading on certain page actions (hide/resize/fullscreen) in certain browsers
-    // This allows resetting the playhead when we catch the reload
-    /*if (options['startTime']) {
-      this.ready(function(){
-        this.load();
-        this.play();
-        this.currentTime(options['startTime']);
-      });
-    }*/
-
+    this.features['timeupdateEvents'] = true;
+    this.features['progressEvents'] = true;
     // firefox doesn't bubble mousemove events to parent. audiojs/audio-js-swf#37
     // bugzilla bug: https://bugzilla.mozilla.org/show_bug.cgi?id=836786
     if (ajs.IS_FIREFOX) {
@@ -5413,18 +5446,17 @@ ajs.Flash = ajs.MediaTechController.extend({
         }));
       });
     }
-    
+
     // native click events on the SWF aren't triggered on IE11, Win8.1RT
     // use stageclick events triggered from inside the SWF instead
     player.on('stageclick', player.reportUserActivity);
 
     this.el_ = ajs.Flash.embed(options['swf'], placeHolder, flashVars, params, attributes);
     player.tag = this.el_;
-    ajs.Flash.checkReady(this); 
+
   }
 });
 
-        
 
 ajs.Flash.prototype.dispose = function(){
   ajs.MediaTechController.prototype.dispose.call(this);
@@ -5435,13 +5467,11 @@ if (this.listener.url == "undefined") {
     this.el_.SetVariable("method:setUrl", this.src);
                 }
   this.el_.SetVariable("method:play", "");
-    var tech = this;
-  setTimeout(function(){tech.trigger("play");},50);
+
 };
 ajs.Flash.prototype.pause = function(){
   this.el_.SetVariable("method:pause", "");
-    var tech = this;
-  setTimeout(function(){this.trigger("pause");},50);
+
 };
 ajs.Flash.prototype.paused = function(){ return this.listener.isPlaying == "false"; };
 
@@ -5449,27 +5479,30 @@ ajs.Flash.prototype.currentTime = function(){ return this.listener.position / 10
 ajs.Flash.prototype.setCurrentTime = function(seconds){
   this.el_.SetVariable("method:setPosition", seconds * 1000);
     var tech = this;
-   setTimeout(function(){ tech.trigger("seeked");}, 50); 
+   setTimeout(function(){ tech.trigger("seeked");}, 50);
 };
 
 ajs.Flash.prototype.duration = function(){ return this.listener.duration / 1000 || 0; };
 ajs.Flash.prototype.buffered = function(){
-    var buffer= this.duration()*this.listener.bytesLoaded/this.listener.bytesTotal;  
+    var buffer= this.duration()*this.listener.bytesLoaded/this.listener.bytesTotal;
     return ajs.createTimeRange(0, buffer);
 };
 
 ajs.Flash.prototype.volume = function(){ return this.listener.volume / 100; };
 ajs.Flash.prototype.setVolume = function(percentAsDecimal){
-  this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
+    this.listener.muted = (percentAsDecimal==0)?true:false;
+    this.el_.SetVariable("method:setVolume", percentAsDecimal * 100);
 };
-ajs.Flash.prototype.muted = function(){ return this.listener.volume == "0"; };
-ajs.Flash.prototype.setMuted = function(muted){ 
+ajs.Flash.prototype.muted = function(){ return this.listener.muted; };
+ajs.Flash.prototype.setMuted = function(muted){
     if (muted) {
         this.el_.SetVariable("method:setVolume","0");
+        this.listener.muted = true;
     }else{
-        this.el_.SetVariable("method:setVolume","100");}
-    var tech = this;
-    setTimeout(function(){ tech.trigger("volumechange"); }, 50); 
+        this.el_.SetVariable("method:setVolume","100");
+        this.listener.muted =false;
+    }
+
 };
 
 ajs.Flash.prototype.width = function(){ return this.el_.offsetWidth; };
@@ -5480,7 +5513,7 @@ ajs.Flash.prototype.src = function(src){
     return this.currentSrc();
   }
 
-//  if (ajs.Flash.isStreamingSrc(src)) {
+//  if (ajs.Flash.isStreamingSrc(src)) {volume
 //    src = ajs.Flash.streamToParts(src);
 //    this.setRtmpConnection(src.connection);
 //    this.setRtmpStream(src.stream);
@@ -5499,7 +5532,7 @@ ajs.Flash.prototype.src = function(src){
 };
 ajs.Flash.prototype.load = function(){
     this.el_.SetVariable("method:setUrl", this.src);
-    this.trigger("loadstart")   ;
+
 };
 ajs.Flash.prototype.currentSrc = function(){
   var src = this.listener.url;
@@ -5516,26 +5549,25 @@ ajs.Flash.prototype.currentSrc = function(){
   return src;
 };
 
-ajs.Flash.prototype.preload = function(){ return this.el_.preload; };
-ajs.Flash.prototype.setPreload = function(val){ this.el_.preload = val; };
+ajs.Flash.prototype.preload = function(){ return this.listener.preload; };
+ajs.Flash.prototype.setPreload = function(val){ this.listener.preload = val; };
 
-ajs.Flash.prototype.autoplay = function(){ return this.el_.autoplay; };
-ajs.Flash.prototype.setAutoplay = function(val){ this.el_.autoplay = val; };
+ajs.Flash.prototype.autoplay = function(){ return this.listener.autoplay; };
+ajs.Flash.prototype.setAutoplay = function(val){ this.listener.autoplay = val; };
 
-ajs.Flash.prototype.controls = function(){ return this.el_.controls; };
-ajs.Flash.prototype.setControls = function(val){ this.el_.controls = !!val; };
+ajs.Flash.prototype.controls = function(){ return this.listener.controls; };
+ajs.Flash.prototype.setControls = function(val){ this.listener.controls = !!val; };
 
-ajs.Flash.prototype.loop = function(){ return this.el_.loop; };
-ajs.Flash.prototype.setLoop = function(val){ this.el_.loop = val; };
+ajs.Flash.prototype.loop = function(){ return this.listener.loop; };
+ajs.Flash.prototype.setLoop = function(val){ this.listener.loop = val; };
 
-ajs.Flash.prototype.error = function(){ return this.el_.error; };
-ajs.Flash.prototype.seeking = function(){ return this.el_.seeking; };
-ajs.Flash.prototype.ended = function(){ return this.el_.ended; };
+
+ajs.Flash.prototype.ended = function(){ return this.listener.ended; };
 
 
 
 // List of all HTML5 events (various uses).
-ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,seeked,seeking,,timeupdate,progress,play,pause,volumechange'.split(',');
+ajs.Flash.Events = 'loadstart,canplay,playing,ended,durationchange,seeked,timeupdate,progress,play,pause,volumechange'.split(',');
 
 // Make audio events trigger player events
 // May seem verbose here, but makes other APIs possible.
@@ -5565,7 +5597,7 @@ ajs.Flash.prototype.eventHandler = function(evt){
 /* Flash Support Testing -------------------------------------------------------- */
 
 ajs.Flash.isSupported = function(){
-  return ajs.Flash.version()[0] >= 10;
+  return ajs.Flash.version()[0] >= 0;
   // return swfobject.hasFlashPlayerVersion('10');
 };
 
@@ -5586,71 +5618,12 @@ ajs.Flash.formats = {
   'audio/flv': 'FLV',
   'audio/x-flv': 'FLV',
   'audio/mp3': 'mp3',
-  
+
 };
 
 ajs.Flash.streamingFormats = {
   'rtmp/mp3': 'mp3',
   'rtmp/flv': 'FLV'
-};
-
-ajs.Flash['onReady'] = function(currSwf){
-  var el = ajs.el(currSwf);
-
-  // Get player from box
-  // On firefox reloads, el might already have a player
-  var player = el['player'] || el.parentNode['player'],
-      tech = player.tech;
-
-  // Reference player on tech element
-  el['player'] = player;
-
-  // Update reference to playback technology element
-  tech.el_ = el;
-
-  ajs.Flash.checkReady(tech);
-};
-
-// The SWF isn't alwasy ready when it says it is. Sometimes the API functions still need to be added to the object.
-// If it's not ready, we set a timeout to check again shortly.
-ajs.Flash.checkReady = function(tech){
-
-  // Check if API property exists
-  if (tech.listener.url!==undefined) {
-      
-
-    // If so, tell tech it's ready
-    tech.triggerReady();
-  
-  // Otherwise wait longer.
-  
-  } else {
-
-    setTimeout(function(){
-      ajs.Flash.checkReady(tech);
-    }, 50);
-
-  }
-};
-
-// Trigger events from the swf on the player
-ajs.Flash['onEvent'] = function(swfID, eventName){
-  var player = ajs.el(swfID)['player'];
-  player.trigger(eventName);
-};
-
-// Log errors from the swf
-ajs.Flash['onError'] = function(swfID, err){
-  var player = ajs.el(swfID)['player'];
-  var msg = 'FLASH: '+err;
-
-  if (err == 'srcnotfound') {
-    player.error({ code: 4, message: msg });
-
-  // errors we haven't categorized into the media errors
-  } else {
-    player.error(msg);
-  }
 };
 
 // Flash Version Check
